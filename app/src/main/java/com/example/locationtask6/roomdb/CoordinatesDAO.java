@@ -13,11 +13,11 @@ public interface CoordinatesDAO {
         @Insert
         void addCoordinates(CoordinatesModel coordinatesModel);
 
-        @Update
-        void updateCoordinates(CoordinatesModel coordinatesModel);
-
         @Query("DELETE FROM coordinates_table")
         void deleteAllCoordinates();
+
+        @Query("DELETE FROM coordinates_table WHERE coordinates_id=:id ")
+        void delete(long id);
 
         @Query("SELECT * FROM coordinates_table")
         List<CoordinatesModel> getAllCoordinates();

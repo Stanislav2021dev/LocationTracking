@@ -13,7 +13,7 @@ public class LogInPresenter extends MvpPresenter<LogInInterface>   {
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
 
     public void loginUser(String email, String password) {
-        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(LogInActivity.getInstance(),task -> {
+        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 Log.d("Auth", "signInWithEmail:success");
                 FirebaseUser user = auth.getCurrentUser();
@@ -29,7 +29,7 @@ public class LogInPresenter extends MvpPresenter<LogInInterface>   {
 
     public void singUpUser(String email,String password){
         auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(LogInActivity.getInstance(), task -> {
+                .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         Log.d("Auth", "createUserWithEmail:success");
                         FirebaseUser user = auth.getCurrentUser();

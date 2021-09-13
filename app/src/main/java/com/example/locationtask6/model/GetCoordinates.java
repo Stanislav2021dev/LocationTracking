@@ -28,7 +28,9 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.Task;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -58,15 +60,20 @@ public class GetCoordinates {
     private  LatLng currentLatLng;
     private static final int CHECK_SETTINGS_CODE = 111;
     private String currentDateTime;
+    private final Subject<ResultClass> locationPoint=PublishSubject.create();
 
+
+    public Subject<ResultClass> getLocationPoint(){
+        return locationPoint;
+    }
 
     public void startLocationUpdates() {
-        Log.v("Loc","StartLocationUpdates()");
+       // Log.v("Loc","StartLocationUpdates()");
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(TrackActivity.getInstance());
         settingsClient = LocationServices.getSettingsClient(TrackActivity.getInstance());
 
         settingsClient.checkLocationSettings(locationSettingsRequest)
-                .addOnSuccessListener(TrackActivity.getInstance(), locationSettingsResponse -> {
+                .addOnSuccessListener(locationSettingsResponse -> {
                     if (ActivityCompat.checkSelfPermission(TrackActivity.getInstance(), Manifest.permission.ACCESS_FINE_LOCATION)
                             != PackageManager.PERMISSION_GRANTED) {
                         return;
@@ -96,13 +103,17 @@ public class GetCoordinates {
                 });
     }
 
-    public void buildLocationCallBack(Subject<ResultClass> locationPoint) {
-        Log.v("Loc","BuildLocationCallback()");
+    public void stopLocationUpdates(){
+        fusedLocationClient.removeLocationUpdates(locationCallback);
+    }
+
+    public void buildLocationCallBack() {
+        //Log.v("Loc","BuildLocationCallback()");
         locationCallback = new LocationCallback() {
             @RequiresApi(api = Build.VERSION_CODES.N)
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
-                Log.v("Loc","OnLocationResult()");
+               // Log.v("Loc","OnLocationResult()");
                 super.onLocationResult(locationResult);
                 currentLocation = locationResult.getLastLocation();
                 ResultClass resultClass =  updateLocation();
@@ -113,8 +124,8 @@ public class GetCoordinates {
     }
 
     public ResultClass updateLocation() {
-        Log.v("Loc","UpdateLocation()");
-        Log.v("Loc","CurrentTread Update " + Thread.currentThread().getName());
+     //   Log.v("Loc","UpdateLocation()");
+      //  Log.v("Loc","CurrentTread Update " + Thread.currentThread().getName());
         if (currentLocation != null) {
             currentLatLng =
                     new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
@@ -126,7 +137,7 @@ public class GetCoordinates {
     }
 
     public void buildLocationRequest() {
-        Log.v("Loc","buildLocationRequest()");
+       // Log.v("Loc","buildLocationRequest()");
         locationRequest = new LocationRequest();
         locationRequest.setInterval(10000);
         //  locationRequest.setFastestInterval(3000);
@@ -134,7 +145,7 @@ public class GetCoordinates {
     }
 
     public void buildLocationSettingsRequest() {
-        Log.v("Loc","buildLocationSettingsRequest()");
+     //   Log.v("Loc","buildLocationSettingsRequest()");
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
         builder.addAllLocationRequests(Collections.singleton(locationRequest));
         locationSettingsRequest = builder.build();

@@ -2,6 +2,7 @@ package com.example.locationtask6.view;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -30,8 +31,7 @@ import com.google.android.material.snackbar.Snackbar;
 import moxy.MvpAppCompatActivity;
 import moxy.presenter.InjectPresenter;
 
-public class TrackActivity extends MvpAppCompatActivity implements TrackInterface,OnMapReadyCallback {
-
+public class TrackActivity extends MvpAppCompatActivity implements TrackInterface, OnMapReadyCallback {
 
 
     @InjectPresenter
@@ -41,7 +41,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     static TrackActivity trackActivity;
     private static Context context;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 222;
-    private static final String FINE_LOCATION= Manifest.permission.ACCESS_FINE_LOCATION;
+    private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
     private boolean mLocationPermissionGranted;
     private CoordinatesDataBase coordinatesDataBase;
 
@@ -67,6 +67,15 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         mMap = googleMap;
         LatLng kyiv = new LatLng(50.45, 30.55);
         mMap.moveCamera(CameraUpdateFactory.newLatLng(kyiv));
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED) {
+
+            return;
+        }
+        mMap.setMyLocationEnabled(true);
+
     }
 
     public void getLocationPermission(){
@@ -92,6 +101,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 mLocationPermissionGranted = true;
                 trackPresenter.startLocationUpdates();
+
             }
             else {
                 showSnackBar("Location permission needed", "Allow", new View.OnClickListener() {
@@ -113,6 +123,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(12));
         mMap.addMarker(new MarkerOptions().position(currentLatLng).title("Current location"));
+
     }
 
     @Override

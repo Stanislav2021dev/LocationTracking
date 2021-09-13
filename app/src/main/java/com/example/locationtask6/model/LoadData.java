@@ -1,10 +1,12 @@
 package com.example.locationtask6.model;
 
+import android.content.ComponentName;
 import android.location.Location;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.room.Room;
+import androidx.work.WorkManager;
 
 import com.example.locationtask6.roomdb.CoordinatesDataBase;
 import com.example.locationtask6.roomdb.CoordinatesModel;
@@ -22,22 +24,13 @@ import java.util.Calendar;
 import java.util.HashMap;
 
 public class LoadData {
-    private CoordinatesDataBase coordinatesDataBase;
+    private static CoordinatesDataBase coordinatesDataBase;
     private static final HashMap<String, LatLng> coordinates=new HashMap<>();
-    private FirebaseFirestore db;
+    private static FirebaseFirestore db;
+    private static boolean uploadSuccess;
 
-    public boolean isOnline() {
-        Runtime runtime = Runtime.getRuntime();
-        try {
-            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
-            int     exitValue = ipProcess.waitFor();
-            return (exitValue == 0);
-        }
-        catch (IOException | InterruptedException e) { e.printStackTrace(); }
-        return false;
-    }
 
-    public void initDb(){
+    public static void initDb(){
         Log.v("Loc","InitDb");
         coordinatesDataBase= Room.databaseBuilder(LogInActivity.getContext(),CoordinatesDataBase.class,
                 "CoordinatesData").build();
@@ -45,13 +38,14 @@ public class LoadData {
     }
 
 
-    public void uploadToRoomDb(ResultClass resultClass){
+    public static void uploadToRoomDb(ResultClass resultClass){
         Log.v("Loc", "UploadToDb");
         coordinatesDataBase.getCoordinatesDAO().addCoordinates(new CoordinatesModel(0,resultClass.getCurrentDateTime(),
                 resultClass.getCurrentLocation().toString()));
     }
 
-    public void uploadToFireBase(ResultClass resultClass){
+    public static boolean uploadToFireBase(ResultClass resultClass){
+
         coordinates.put(resultClass.getCurrentDateTime(),resultClass.getCurrentLocation());
         db = FirebaseFirestore.getInstance();
         db.collection("coordinates")
@@ -59,17 +53,31 @@ public class LoadData {
                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
-                        Log.v("Loc","CoordinatesModel added to Fb");
+                        Log.v("Loc","UploadToFb");
+                        uploadSuccess=true;
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         Log.v("Loc","Error ->" +e);
+                        uploadSuccess=false;
+
                     }
                 });
-
+        return uploadSuccess;
     }
+
+    public static LatLng  toLatLng(String coordinates){
+        String[] latlong = coordinates.split(",");
+        double latitude = Double.parseDouble(latlong[0].replace("lat/lng: (",""));
+        double longitude = Double.parseDouble(latlong[1].replace(")",""));
+        return new LatLng(latitude, longitude);
+    }
+    public static CoordinatesDataBase getCoordinatesDataBase(){
+        return coordinatesDataBase;
+    }
+
 }
 
 
