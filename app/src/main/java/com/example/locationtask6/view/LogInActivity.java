@@ -1,5 +1,6 @@
 package com.example.locationtask6.view;
 
+import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
 
 import android.content.Context;
@@ -37,8 +38,20 @@ public class LogInActivity extends MvpAppCompatActivity implements LogInInterfac
         logInActivity=this;
         binding = DataBindingUtil.setContentView(this, R.layout.login);
 
-        binding.singUpButton.setOnClickListener(v -> logInPresenter.singUpUser(getEmail(),getPassword()));
-        binding.loginButton.setOnClickListener(v -> logInPresenter.loginUser(getEmail(),getPassword()));
+        binding.singUpButton.setOnClickListener(v ->{
+            if (!(validateEmail()) | !(validatePassword())){
+                return;
+            }
+            logInPresenter.singUpUser(getEmail(),getPassword());
+        });
+
+        binding.loginButton.setOnClickListener(v ->
+                {
+                    if (!(validateEmail())| !(validatePassword())){
+                        return;
+                    }
+                    logInPresenter.loginUser(getEmail(),getPassword());
+                });
     }
 
     public static LogInActivity getInstance() {
@@ -47,9 +60,28 @@ public class LogInActivity extends MvpAppCompatActivity implements LogInInterfac
     public String getEmail(){
         return binding.textInputEmail.getEditText().getText().toString().trim();
     }
+
+    public boolean validateEmail() {
+        if (getEmail().isEmpty()){
+            binding.textInputEmail.setError("Enter email");
+            return false;
+        }
+        else binding.textInputEmail.setError("");
+       return true;
+    }
+
     public String getPassword(){
         return binding.textInputPassword.getEditText().getText().toString().trim();
     }
+    public boolean validatePassword() {
+        if (getPassword().isEmpty()){
+            binding.textInputPassword.setError("Enter password");
+            return false;
+        }
+        else binding.textInputPassword.setError("");
+        return true;
+    }
+
 
     @Override
     public void makeToast(String toast) {

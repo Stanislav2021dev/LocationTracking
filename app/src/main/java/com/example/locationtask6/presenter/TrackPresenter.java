@@ -2,12 +2,14 @@ package com.example.locationtask6.presenter;
 
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
+import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 import androidx.work.Constraints;
 import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkContinuation;
@@ -17,6 +19,7 @@ import com.example.locationtask6.di.InjectModelInterface;
 import com.example.locationtask6.model.GetCoordinates;
 import com.example.locationtask6.model.LoadData;
 import com.example.locationtask6.model.ResultClass;
+import com.example.locationtask6.model.UploadFromDbToFbWorkManager;
 import com.example.locationtask6.model.UploadToFbWorkManager;
 import com.example.locationtask6.model.UploadToDbWorkManager;
 import com.example.locationtask6.view.LogInActivity;
@@ -45,7 +48,11 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
     private ComponentName componentName;
     private Subject<ResultClass> locationPoint;
 
+
+
     public void start() {
+
+
 
         InjectModelInterface mInterface = EntryPoints.get(this, InjectModelInterface.class);
         getCoordinates = mInterface.getCoordinates();
@@ -81,6 +88,8 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
                .setRequiredNetworkType(NetworkType.CONNECTED)
                .build();
 
+
+
         OneTimeWorkRequest uploadToFbRequest=new OneTimeWorkRequest.Builder(UploadToFbWorkManager.class)
                 .setInputData(inputData)
                 .setConstraints(uploadToFbConstraints).build();
@@ -89,11 +98,18 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
                 .setInputData(inputData)
                 .setConstraints(uploadToDbConstraints).build();
 
+        OneTimeWorkRequest uploadFromDbToFbRequest = new OneTimeWorkRequest.Builder(UploadFromDbToFbWorkManager.class)
+                .setConstraints(uploadToFbConstraints)
+                .build();
+
 
         WorkManager.getInstance(LogInActivity.getContext())
                 .beginWith(uploadToDbRequest)
                 .then(uploadToFbRequest)
                 .enqueue();
+
+        WorkManager.getInstance(LogInActivity.getContext())
+                .enqueueUniqueWork("work", ExistingWorkPolicy.REPLACE,uploadFromDbToFbRequest);
     }
 
 
@@ -134,7 +150,7 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getCoordinates.stopLocationUpdates();
+     //   getCoordinates.stopLocationUpdates();
     }
     public LoadData getLoadData(){
         return loadData;

@@ -1,21 +1,23 @@
 package com.example.locationtask6.model;
 
 import android.Manifest;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.os.Build;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Looper;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
-import androidx.room.Room;
 
-import com.example.locationtask6.presenter.TrackPresenter;
-import com.example.locationtask6.roomdb.CoordinatesDataBase;
-import com.example.locationtask6.roomdb.CoordinatesModel;
+import com.example.locationtask6.view.LogInActivity;
 import com.example.locationtask6.view.TrackActivity;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
@@ -28,28 +30,20 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.Task;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
-import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.ObservableEmitter;
-import io.reactivex.rxjava3.core.ObservableOnSubscribe;
-import io.reactivex.rxjava3.core.Observer;
-import io.reactivex.rxjava3.disposables.Disposable;
-import io.reactivex.rxjava3.subjects.BehaviorSubject;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import io.reactivex.rxjava3.subjects.Subject;
 
+import static android.content.Context.LOCATION_SERVICE;
 import static io.reactivex.rxjava3.subjects.PublishSubject.create;
 
-public class GetCoordinates {
+public class GetCoordinates implements Parcelable {
 
     private LocationSettingsRequest locationSettingsRequest;
     private LocationRequest locationRequest;
@@ -57,44 +51,126 @@ public class GetCoordinates {
     private FusedLocationProviderClient fusedLocationClient;
     private SettingsClient settingsClient;
     private Location currentLocation;
-    private  LatLng currentLatLng;
+    private LatLng currentLatLng;
     private static final int CHECK_SETTINGS_CODE = 111;
     private String currentDateTime;
-    private final Subject<ResultClass> locationPoint=PublishSubject.create();
+    private final Subject<ResultClass> locationSubject = PublishSubject.create();
+    private LocationManager locationManager;
+    private final Context context = LogInActivity.getInstance();
+    private ResultClass currentPoint;
 
+    public GetCoordinates() {
 
-    public Subject<ResultClass> getLocationPoint(){
-        return locationPoint;
     }
 
+    protected GetCoordinates(Parcel in) {
+        locationSettingsRequest = in.readParcelable(LocationSettingsRequest.class.getClassLoader());
+        locationRequest = in.readParcelable(LocationRequest.class.getClassLoader());
+        currentLocation = in.readParcelable(Location.class.getClassLoader());
+        currentLatLng = in.readParcelable(LatLng.class.getClassLoader());
+        currentDateTime = in.readString();
+    }
+
+    public static final Creator<GetCoordinates> CREATOR = new Creator<GetCoordinates>() {
+        @Override
+        public GetCoordinates createFromParcel(Parcel in) {
+            return new GetCoordinates(in);
+        }
+
+        @Override
+        public GetCoordinates[] newArray(int size) {
+            return new GetCoordinates[size];
+        }
+    };
+
+    public void buildLocationRequest() {
+        Log.v("Order", "Build Location Request");
+        locationManager =
+                (LocationManager) context.getApplicationContext().getSystemService(LOCATION_SERVICE);
+        locationRequest = new LocationRequest();
+        locationRequest.setInterval(10000);
+        locationRequest.setFastestInterval(3000);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        if (ActivityCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(LogInActivity.getInstance(), Manifest.permission.ACCESS_COARSE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED) {
+
+            return;
+        }
+
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                1000 * 10, 10, new LocationListener() {
+                    @Override
+                    public void onLocationChanged(@NonNull Location location) {
+                        Log.v("Order", "locationListener");
+                        buildLocationCallBack();
+                    }
+                });
+
+
+    }
+
+    public void buildLocationSettingsRequest() {
+        Log.v("Order", "Build Location Settings Request");
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
+        builder.addAllLocationRequests(Collections.singleton(locationRequest));
+        locationSettingsRequest = builder.build();
+    }
+
+    public void buildLocationCallBack() {
+        Log.v("Order", "Build Location Callback");
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult locationResult) {
+                Log.v("Order", "Build Location Callback on Location Result");
+                super.onLocationResult(locationResult);
+
+                currentLocation = locationResult.getLastLocation();
+
+                currentPoint = updateLocation();
+                locationSubject.onNext(currentPoint);
+
+            }
+        };
+    }
+
+
+
     public void startLocationUpdates() {
-       // Log.v("Loc","StartLocationUpdates()");
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(TrackActivity.getInstance());
-        settingsClient = LocationServices.getSettingsClient(TrackActivity.getInstance());
+         Log.v("Order","StartLocationUpdates()");
+        fusedLocationClient =
+                LocationServices.getFusedLocationProviderClient(context);
+        settingsClient = LocationServices.getSettingsClient(context);
 
         settingsClient.checkLocationSettings(locationSettingsRequest)
                 .addOnSuccessListener(locationSettingsResponse -> {
-                    if (ActivityCompat.checkSelfPermission(TrackActivity.getInstance(), Manifest.permission.ACCESS_FINE_LOCATION)
+                    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                             != PackageManager.PERMISSION_GRANTED) {
                         return;
                     }
-                    fusedLocationClient.requestLocationUpdates(locationRequest,locationCallback,
-                            Looper.myLooper()
-                    );
 
+                    fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback,
+                            Looper.myLooper());
+                   // fusedLocationClient.requestLocationUpdates(locationRequest,getPendingIntent());
                 })
 
-                .addOnFailureListener(TrackActivity.getInstance(), new OnFailureListener() {
+                .addOnFailureListener(LogInActivity.getInstance(), new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
 
+
                         int statusCode = ((ApiException) e).getStatusCode();
+
+
+
                         if (statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
                             try {
                                 ResolvableApiException
                                         resolvableApiException =
                                         (ResolvableApiException) e;
-                                resolvableApiException.startResolutionForResult(TrackActivity.getInstance(), CHECK_SETTINGS_CODE);
+                                resolvableApiException.startResolutionForResult(LogInActivity.getInstance(), CHECK_SETTINGS_CODE);
                             } catch (IntentSender.SendIntentException sie) {
                                 sie.printStackTrace();
                             }
@@ -103,51 +179,55 @@ public class GetCoordinates {
                 });
     }
 
-    public void stopLocationUpdates(){
+    public ResultClass updateLocation() {
+        Log.v("Order", "updateLocation");
+
+        if (currentLocation != null) {
+
+            currentLatLng =
+                    new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+
+            Log.v("Location", "CoordinatesModel " + currentLatLng);
+            currentDateTime =
+                    new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+        }
+        currentPoint=new ResultClass(currentDateTime, currentLatLng);
+        return new ResultClass(currentDateTime, currentLatLng);
+    }
+
+    public PendingIntent getPendingIntent() {
+
+        Log.v("Order", "getPendingIntent");
+
+        Intent intent = new Intent(context, LocationUpdatesBroadcastReceiver.class);
+        intent.setAction(LocationUpdatesBroadcastReceiver.ACTION_PROCESS_UPDATES);
+        return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+    }
+
+    public Subject<ResultClass> getLocationPoint() {
+        return locationSubject;
+    }
+    public void stopLocationUpdates() {
         fusedLocationClient.removeLocationUpdates(locationCallback);
     }
 
-    public void buildLocationCallBack() {
-        //Log.v("Loc","BuildLocationCallback()");
-        locationCallback = new LocationCallback() {
-            @RequiresApi(api = Build.VERSION_CODES.N)
-            @Override
-            public void onLocationResult(@NonNull LocationResult locationResult) {
-               // Log.v("Loc","OnLocationResult()");
-                super.onLocationResult(locationResult);
-                currentLocation = locationResult.getLastLocation();
-                ResultClass resultClass =  updateLocation();
-                locationPoint.onNext(resultClass);
 
-            }
-        };
+    @Override
+    public int describeContents() {
+        return 0;
     }
 
-    public ResultClass updateLocation() {
-     //   Log.v("Loc","UpdateLocation()");
-      //  Log.v("Loc","CurrentTread Update " + Thread.currentThread().getName());
-        if (currentLocation != null) {
-            currentLatLng =
-                    new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-            Log.v("Loc", "CoordinatesModel " + currentLatLng);
-            currentDateTime = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
-
-        }
-        return new ResultClass(currentDateTime,currentLatLng);
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeParcelable(locationSettingsRequest, flags);
+        dest.writeParcelable(locationRequest, flags);
+        dest.writeParcelable(currentLocation, flags);
+        dest.writeParcelable(currentLatLng, flags);
+        dest.writeString(currentDateTime);
     }
 
-    public void buildLocationRequest() {
-       // Log.v("Loc","buildLocationRequest()");
-        locationRequest = new LocationRequest();
-        locationRequest.setInterval(10000);
-        //  locationRequest.setFastestInterval(3000);
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-    }
-
-    public void buildLocationSettingsRequest() {
-     //   Log.v("Loc","buildLocationSettingsRequest()");
-        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
-        builder.addAllLocationRequests(Collections.singleton(locationRequest));
-        locationSettingsRequest = builder.build();
+    public ResultClass getCurrentPoint (){
+        return currentPoint;
     }
 }

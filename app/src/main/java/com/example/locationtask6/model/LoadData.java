@@ -1,7 +1,9 @@
 package com.example.locationtask6.model;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.location.Location;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -22,6 +24,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 
 public class LoadData {
     private static CoordinatesDataBase coordinatesDataBase;
@@ -31,7 +34,7 @@ public class LoadData {
 
 
     public static void initDb(){
-        Log.v("Loc","InitDb");
+        Log.v("Location","InitDb");
         coordinatesDataBase= Room.databaseBuilder(LogInActivity.getContext(),CoordinatesDataBase.class,
                 "CoordinatesData").build();
         coordinatesDataBase.getCoordinatesDAO().deleteAllCoordinates();
@@ -39,7 +42,7 @@ public class LoadData {
 
 
     public static void uploadToRoomDb(ResultClass resultClass){
-        Log.v("Loc", "UploadToDb");
+        Log.v("Location", "UploadToDb");
         coordinatesDataBase.getCoordinatesDAO().addCoordinates(new CoordinatesModel(0,resultClass.getCurrentDateTime(),
                 resultClass.getCurrentLocation().toString()));
     }
@@ -53,14 +56,14 @@ public class LoadData {
                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
-                        Log.v("Loc","UploadToFb");
+                        Log.v("Location","UploadToFb");
                         uploadSuccess=true;
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Log.v("Loc","Error ->" +e);
+                        Log.v("Location","Error ->" +e);
                         uploadSuccess=false;
 
                     }

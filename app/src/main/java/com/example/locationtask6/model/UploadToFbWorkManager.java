@@ -25,7 +25,7 @@ public class UploadToFbWorkManager extends Worker {
         String dateTime=getInputData().getString("DateTime");
         String coordinates = getInputData().getString("Coordinates");
 
-        uploadFromDbToFb();
+
 
         boolean isSuccess = LoadData.uploadToFireBase(new ResultClass(dateTime,LoadData.toLatLng(coordinates)));
         if (!(isSuccess)) {
@@ -36,18 +36,5 @@ public class UploadToFbWorkManager extends Worker {
 
     }
 
-    public void uploadFromDbToFb(){
-        List<CoordinatesModel> coordinatesModelList= LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates();
 
-        if (coordinatesModelList.size()!=0){
-
-            for (CoordinatesModel coord: coordinatesModelList) {
-                Log.v("qwert", "Time "+ coord.getDateTime() + " coordinates "+ coord.getCoordinates()
-                        + "Size " + coordinatesModelList.size());
-
-                LoadData.uploadToFireBase(new ResultClass(coord.getDateTime(),LoadData.toLatLng(coord.getCoordinates())));
-                LoadData.getCoordinatesDataBase().getCoordinatesDAO().delete(coord.getId());
-            }
-        }
-    }
 }

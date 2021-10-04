@@ -33,7 +33,7 @@ public class UploadToDbWorkManager extends Worker {
 
         if (!(isOnline())) {
             LoadData.uploadToRoomDb(result);
-            Log.v("Loc", "WorkStarted  " + isOnline() + " " + coordinates );
+            Log.v("Location", "WorkStarted  " + isOnline() + " " + coordinates );
         }
 
         return Result.success();
