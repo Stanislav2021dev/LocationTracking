@@ -36,6 +36,7 @@ public class UploadFromDbToFbWorkManager extends Worker {
     public void uploadFromDbToFb() {
 
         for (CoordinatesModel coord : coordinatesModelList) {
+
             Log.v("Data", "Time " + coord.getDateTime() + " coordinates " + coord.getCoordinates()
                     + "Size " + LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates().size());
 

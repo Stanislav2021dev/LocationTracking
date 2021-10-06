@@ -5,19 +5,24 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Bundle;
 import android.os.Looper;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import com.example.locationtask6.view.MessageNotification;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 import com.example.locationtask6.view.LogInActivity;
+
 import com.example.locationtask6.view.TrackActivity;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
@@ -43,7 +48,7 @@ import io.reactivex.rxjava3.subjects.Subject;
 import static android.content.Context.LOCATION_SERVICE;
 import static io.reactivex.rxjava3.subjects.PublishSubject.create;
 
-public class GetCoordinates implements Parcelable {
+public class GetCoordinates  {
 
     private LocationSettingsRequest locationSettingsRequest;
     private LocationRequest locationRequest;
@@ -63,40 +68,18 @@ public class GetCoordinates implements Parcelable {
 
     }
 
-    protected GetCoordinates(Parcel in) {
-        locationSettingsRequest = in.readParcelable(LocationSettingsRequest.class.getClassLoader());
-        locationRequest = in.readParcelable(LocationRequest.class.getClassLoader());
-        currentLocation = in.readParcelable(Location.class.getClassLoader());
-        currentLatLng = in.readParcelable(LatLng.class.getClassLoader());
-        currentDateTime = in.readString();
-    }
-
-    public static final Creator<GetCoordinates> CREATOR = new Creator<GetCoordinates>() {
-        @Override
-        public GetCoordinates createFromParcel(Parcel in) {
-            return new GetCoordinates(in);
-        }
-
-        @Override
-        public GetCoordinates[] newArray(int size) {
-            return new GetCoordinates[size];
-        }
-    };
-
     public void buildLocationRequest() {
         Log.v("Order", "Build Location Request");
         locationManager =
                 (LocationManager) context.getApplicationContext().getSystemService(LOCATION_SERVICE);
         locationRequest = new LocationRequest();
         locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(3000);
+        locationRequest.setFastestInterval(10000);
+
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         if (ActivityCompat.checkSelfPermission(context,
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(LogInActivity.getInstance(), Manifest.permission.ACCESS_COARSE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED) {
-
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             return;
         }
 
@@ -108,8 +91,6 @@ public class GetCoordinates implements Parcelable {
                         buildLocationCallBack();
                     }
                 });
-
-
     }
 
     public void buildLocationSettingsRequest() {
@@ -128,15 +109,12 @@ public class GetCoordinates implements Parcelable {
                 super.onLocationResult(locationResult);
 
                 currentLocation = locationResult.getLastLocation();
-
                 currentPoint = updateLocation();
                 locationSubject.onNext(currentPoint);
 
             }
         };
     }
-
-
 
     public void startLocationUpdates() {
          Log.v("Order","StartLocationUpdates()");
@@ -153,18 +131,12 @@ public class GetCoordinates implements Parcelable {
 
                     fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback,
                             Looper.myLooper());
-                   // fusedLocationClient.requestLocationUpdates(locationRequest,getPendingIntent());
                 })
 
                 .addOnFailureListener(LogInActivity.getInstance(), new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-
-
                         int statusCode = ((ApiException) e).getStatusCode();
-
-
-
                         if (statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
                             try {
                                 ResolvableApiException
@@ -192,42 +164,21 @@ public class GetCoordinates implements Parcelable {
                     new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
         }
         currentPoint=new ResultClass(currentDateTime, currentLatLng);
-        return new ResultClass(currentDateTime, currentLatLng);
+
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putString("currentLoc", currentLatLng.toString());
+        editor.apply();
+
+        return currentPoint;
     }
 
-    public PendingIntent getPendingIntent() {
-
-        Log.v("Order", "getPendingIntent");
-
-        Intent intent = new Intent(context, LocationUpdatesBroadcastReceiver.class);
-        intent.setAction(LocationUpdatesBroadcastReceiver.ACTION_PROCESS_UPDATES);
-        return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
+    public void stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback);
     }
 
     public Subject<ResultClass> getLocationPoint() {
         return locationSubject;
     }
-    public void stopLocationUpdates() {
-        fusedLocationClient.removeLocationUpdates(locationCallback);
-    }
 
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeParcelable(locationSettingsRequest, flags);
-        dest.writeParcelable(locationRequest, flags);
-        dest.writeParcelable(currentLocation, flags);
-        dest.writeParcelable(currentLatLng, flags);
-        dest.writeString(currentDateTime);
-    }
-
-    public ResultClass getCurrentPoint (){
-        return currentPoint;
-    }
 }

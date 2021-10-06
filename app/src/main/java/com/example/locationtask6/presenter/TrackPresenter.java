@@ -1,6 +1,7 @@
 package com.example.locationtask6.presenter;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Build;
@@ -52,8 +53,6 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
 
     public void start() {
 
-
-
         InjectModelInterface mInterface = EntryPoints.get(this, InjectModelInterface.class);
         getCoordinates = mInterface.getCoordinates();
         loadData = mInterface.getLoadData();
@@ -65,11 +64,7 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
         getCoordinates.buildLocationRequest();
         getCoordinates.buildLocationSettingsRequest();
         getCoordinates.buildLocationCallBack();
-
-
     }
-
-
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     public void startWork(ResultClass resultClass){
@@ -87,8 +82,6 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
        Constraints uploadToFbConstraints=new Constraints.Builder()
                .setRequiredNetworkType(NetworkType.CONNECTED)
                .build();
-
-
 
         OneTimeWorkRequest uploadToFbRequest=new OneTimeWorkRequest.Builder(UploadToFbWorkManager.class)
                 .setInputData(inputData)
@@ -110,6 +103,7 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
 
         WorkManager.getInstance(LogInActivity.getContext())
                 .enqueueUniqueWork("work", ExistingWorkPolicy.REPLACE,uploadFromDbToFbRequest);
+
     }
 
 
@@ -125,9 +119,11 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
             @RequiresApi(api = Build.VERSION_CODES.R)
             @Override
             public void onNext(@io.reactivex.rxjava3.annotations.NonNull ResultClass resultClass) {
-
-               startWork(resultClass);
-
+                Log.v("WorkRes"," "+isAppOnForeground(LogInActivity.getContext()));
+            if (!(isAppOnForeground(LogInActivity.getContext()))){
+                    getCoordinates.stopLocationUpdates();
+                }
+                startWork(resultClass);
                 getViewState().addPoint(resultClass.getCurrentLocation());
             }
 
@@ -150,9 +146,26 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
     @Override
     public void onDestroy() {
         super.onDestroy();
-     //   getCoordinates.stopLocationUpdates();
+
+        getCoordinates.stopLocationUpdates();
     }
     public LoadData getLoadData(){
         return loadData;
     }
+
+    public Subject<ResultClass> getLocationPoint(){
+        return locationPoint;
+    }
+    public boolean isAppOnForeground(Context mContext) {
+        ActivityManager am = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> tasks = am.getRunningTasks(1);
+        if (!tasks.isEmpty()) {
+            ComponentName topActivity = tasks.get(0).topActivity;
+            if (!topActivity.getPackageName().equals(mContext.getPackageName())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

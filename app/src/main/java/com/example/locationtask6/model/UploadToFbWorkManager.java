@@ -25,8 +25,6 @@ public class UploadToFbWorkManager extends Worker {
         String dateTime=getInputData().getString("DateTime");
         String coordinates = getInputData().getString("Coordinates");
 
-
-
         boolean isSuccess = LoadData.uploadToFireBase(new ResultClass(dateTime,LoadData.toLatLng(coordinates)));
         if (!(isSuccess)) {
             LoadData.uploadToRoomDb(new ResultClass(dateTime,LoadData.toLatLng(coordinates)));

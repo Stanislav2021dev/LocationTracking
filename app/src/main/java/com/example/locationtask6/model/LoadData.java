@@ -65,7 +65,6 @@ public class LoadData {
                     public void onFailure(@NonNull Exception e) {
                         Log.v("Location","Error ->" +e);
                         uploadSuccess=false;
-
                     }
                 });
         return uploadSuccess;
