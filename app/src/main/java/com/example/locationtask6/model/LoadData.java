@@ -3,6 +3,9 @@ package com.example.locationtask6.model;
 import android.content.ComponentName;
 import android.content.Context;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
@@ -12,6 +15,7 @@ import androidx.work.WorkManager;
 
 import com.example.locationtask6.roomdb.CoordinatesDataBase;
 import com.example.locationtask6.roomdb.CoordinatesModel;
+import com.example.locationtask6.view.App;
 import com.example.locationtask6.view.LogInActivity;
 import com.example.locationtask6.view.TrackActivity;
 import com.google.android.gms.maps.model.LatLng;
@@ -33,6 +37,7 @@ public class LoadData {
     private static boolean uploadSuccess;
 
 
+
     public static void initDb(){
         Log.v("Location","InitDb");
         coordinatesDataBase= Room.databaseBuilder(LogInActivity.getContext(),CoordinatesDataBase.class,
@@ -42,9 +47,11 @@ public class LoadData {
 
 
     public static void uploadToRoomDb(ResultClass resultClass){
-        Log.v("Location", "UploadToDb");
-        coordinatesDataBase.getCoordinatesDAO().addCoordinates(new CoordinatesModel(0,resultClass.getCurrentDateTime(),
-                resultClass.getCurrentLocation().toString()));
+        if (!Utils.isOnline()) {
+            Log.v("Location", "UploadToDb");
+            coordinatesDataBase.getCoordinatesDAO().addCoordinates(new CoordinatesModel(0, resultClass.getCurrentDateTime(),
+                    resultClass.getCurrentLocation().toString()));
+        }
     }
 
     public static boolean uploadToFireBase(ResultClass resultClass){
@@ -70,12 +77,32 @@ public class LoadData {
         return uploadSuccess;
     }
 
+    public static void uploadFromDbToFb() {
+
+        List<CoordinatesModel> coordinatesModelList; coordinatesModelList =
+                LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates();
+
+        if (coordinatesModelList.size() != 0) {
+
+            for (CoordinatesModel coord : coordinatesModelList) {
+
+                Log.v("Data", "Time " + coord.getDateTime() + " coordinates " + coord.getCoordinates()
+                        + "Size " + LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates().size());
+                Log.v("Data", "Size" + coordinatesModelList.size());
+                LoadData.uploadToFireBase(new ResultClass(coord.getDateTime(), LoadData.toLatLng(coord.getCoordinates())));
+                LoadData.getCoordinatesDataBase().getCoordinatesDAO().delete(coord.getId());
+            }
+        }
+    }
+
+
     public static LatLng  toLatLng(String coordinates){
         String[] latlong = coordinates.split(",");
         double latitude = Double.parseDouble(latlong[0].replace("lat/lng: (",""));
         double longitude = Double.parseDouble(latlong[1].replace(")",""));
         return new LatLng(latitude, longitude);
     }
+
     public static CoordinatesDataBase getCoordinatesDataBase(){
         return coordinatesDataBase;
     }

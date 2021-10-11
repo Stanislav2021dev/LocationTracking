@@ -1,37 +1,38 @@
 package com.example.locationtask6.presenter;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.content.ComponentName;
-import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LifecycleRegistry;
 import androidx.work.Constraints;
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkContinuation;
+import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.example.locationtask6.di.InjectModelInterface;
 import com.example.locationtask6.model.GetCoordinates;
 import com.example.locationtask6.model.LoadData;
+import com.example.locationtask6.model.LongWorker;
 import com.example.locationtask6.model.ResultClass;
 import com.example.locationtask6.model.UploadFromDbToFbWorkManager;
 import com.example.locationtask6.model.UploadToFbWorkManager;
 import com.example.locationtask6.model.UploadToDbWorkManager;
-import com.example.locationtask6.view.LogInActivity;
+import com.example.locationtask6.model.Utils;
+import com.example.locationtask6.view.App;
 import com.example.locationtask6.view.TrackInterface;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import dagger.hilt.EntryPoints;
 import dagger.hilt.internal.GeneratedComponent;
@@ -42,7 +43,6 @@ import moxy.MvpPresenter;
 
 public class TrackPresenter extends MvpPresenter<TrackInterface> implements InjectModelInterface, GeneratedComponent {
 
-
     private GetCoordinates getCoordinates;
     private LoadData loadData;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -50,6 +50,9 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
     private Subject<ResultClass> locationPoint;
 
 
+    public void startLocationUpdates() {
+        getCoordinates.startLocationUpdates();
+    }
 
     public void start() {
 
@@ -95,13 +98,12 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
                 .setConstraints(uploadToFbConstraints)
                 .build();
 
-
-        WorkManager.getInstance(LogInActivity.getContext())
+        WorkManager.getInstance(App.getContext())
                 .beginWith(uploadToDbRequest)
                 .then(uploadToFbRequest)
                 .enqueue();
 
-        WorkManager.getInstance(LogInActivity.getContext())
+        WorkManager.getInstance(App.getContext())
                 .enqueueUniqueWork("work", ExistingWorkPolicy.REPLACE,uploadFromDbToFbRequest);
 
     }
@@ -119,53 +121,31 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
             @RequiresApi(api = Build.VERSION_CODES.R)
             @Override
             public void onNext(@io.reactivex.rxjava3.annotations.NonNull ResultClass resultClass) {
-                Log.v("WorkRes"," "+isAppOnForeground(LogInActivity.getContext()));
-            if (!(isAppOnForeground(LogInActivity.getContext()))){
-                    getCoordinates.stopLocationUpdates();
-                }
                 startWork(resultClass);
                 getViewState().addPoint(resultClass.getCurrentLocation());
+
             }
 
             @Override
             public void onError(@io.reactivex.rxjava3.annotations.NonNull Throwable e) {
-
             }
 
             @Override
             public void onComplete() {
-
             }
         };
     }
 
-    public void startLocationUpdates() {
-        getCoordinates.startLocationUpdates();
-    }
+
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-
         getCoordinates.stopLocationUpdates();
+        Log.v("WorkRes","OnDestroy");
     }
     public LoadData getLoadData(){
         return loadData;
-    }
-
-    public Subject<ResultClass> getLocationPoint(){
-        return locationPoint;
-    }
-    public boolean isAppOnForeground(Context mContext) {
-        ActivityManager am = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningTaskInfo> tasks = am.getRunningTasks(1);
-        if (!tasks.isEmpty()) {
-            ComponentName topActivity = tasks.get(0).topActivity;
-            if (!topActivity.getPackageName().equals(mContext.getPackageName())) {
-                return false;
-            }
-        }
-        return true;
     }
 
 }

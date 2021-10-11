@@ -1,29 +1,18 @@
 package com.example.locationtask6.model;
 
 import android.Manifest;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.content.IntentSender;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.os.Bundle;
 import android.os.Looper;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.preference.PreferenceManager;
 import android.util.Log;
-import com.example.locationtask6.view.MessageNotification;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
+import com.example.locationtask6.view.App;
 import com.example.locationtask6.view.LogInActivity;
-
-import com.example.locationtask6.view.TrackActivity;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -35,21 +24,17 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.tasks.OnFailureListener;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Collections;
-import java.util.List;
 
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import io.reactivex.rxjava3.subjects.Subject;
 
-import static android.content.Context.LOCATION_SERVICE;
-import static io.reactivex.rxjava3.subjects.PublishSubject.create;
+public class GetCoordinates {
 
-public class GetCoordinates  {
-
+    private static final int CHECK_SETTINGS_CODE = 111;
+    private final Subject<ResultClass> locationSubject = PublishSubject.create();
+    private final Context context = App.getContext();
     private LocationSettingsRequest locationSettingsRequest;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
@@ -57,11 +42,6 @@ public class GetCoordinates  {
     private SettingsClient settingsClient;
     private Location currentLocation;
     private LatLng currentLatLng;
-    private static final int CHECK_SETTINGS_CODE = 111;
-    private String currentDateTime;
-    private final Subject<ResultClass> locationSubject = PublishSubject.create();
-    private LocationManager locationManager;
-    private final Context context = LogInActivity.getInstance();
     private ResultClass currentPoint;
 
     public GetCoordinates() {
@@ -70,27 +50,11 @@ public class GetCoordinates  {
 
     public void buildLocationRequest() {
         Log.v("Order", "Build Location Request");
-        locationManager =
-                (LocationManager) context.getApplicationContext().getSystemService(LOCATION_SERVICE);
         locationRequest = new LocationRequest();
         locationRequest.setInterval(10000);
         locationRequest.setFastestInterval(10000);
-
+        // locationRequest.setSmallestDisplacement(10);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-
-        if (ActivityCompat.checkSelfPermission(context,
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-            return;
-        }
-
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                1000 * 10, 10, new LocationListener() {
-                    @Override
-                    public void onLocationChanged(@NonNull Location location) {
-                        Log.v("Order", "locationListener");
-                        buildLocationCallBack();
-                    }
-                });
     }
 
     public void buildLocationSettingsRequest() {
@@ -107,17 +71,15 @@ public class GetCoordinates  {
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 Log.v("Order", "Build Location Callback on Location Result");
                 super.onLocationResult(locationResult);
-
                 currentLocation = locationResult.getLastLocation();
                 currentPoint = updateLocation();
                 locationSubject.onNext(currentPoint);
-
             }
         };
     }
 
     public void startLocationUpdates() {
-         Log.v("Order","StartLocationUpdates()");
+        Log.v("Order", "StartLocationUpdates()");
         fusedLocationClient =
                 LocationServices.getFusedLocationProviderClient(context);
         settingsClient = LocationServices.getSettingsClient(context);
@@ -128,24 +90,21 @@ public class GetCoordinates  {
                             != PackageManager.PERMISSION_GRANTED) {
                         return;
                     }
-
                     fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback,
                             Looper.myLooper());
+
                 })
 
-                .addOnFailureListener(LogInActivity.getInstance(), new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        int statusCode = ((ApiException) e).getStatusCode();
-                        if (statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
-                            try {
-                                ResolvableApiException
-                                        resolvableApiException =
-                                        (ResolvableApiException) e;
-                                resolvableApiException.startResolutionForResult(LogInActivity.getInstance(), CHECK_SETTINGS_CODE);
-                            } catch (IntentSender.SendIntentException sie) {
-                                sie.printStackTrace();
-                            }
+                .addOnFailureListener(LogInActivity.getInstance(), e -> {
+                    int statusCode = ((ApiException) e).getStatusCode();
+                    if (statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
+                        try {
+                            ResolvableApiException
+                                    resolvableApiException =
+                                    (ResolvableApiException) e;
+                            resolvableApiException.startResolutionForResult(LogInActivity.getInstance(), CHECK_SETTINGS_CODE);
+                        } catch (IntentSender.SendIntentException sie) {
+                            sie.printStackTrace();
                         }
                     }
                 });
@@ -155,22 +114,11 @@ public class GetCoordinates  {
         Log.v("Order", "updateLocation");
 
         if (currentLocation != null) {
-
             currentLatLng =
                     new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-
             Log.v("Location", "CoordinatesModel " + currentLatLng);
-            currentDateTime =
-                    new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
         }
-        currentPoint=new ResultClass(currentDateTime, currentLatLng);
-
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putString("currentLoc", currentLatLng.toString());
-        editor.apply();
-
-        return currentPoint;
+        return new ResultClass(Utils.getCurrentTime(), currentLatLng);
     }
 
     public void stopLocationUpdates() {
@@ -180,5 +128,4 @@ public class GetCoordinates  {
     public Subject<ResultClass> getLocationPoint() {
         return locationSubject;
     }
-
 }

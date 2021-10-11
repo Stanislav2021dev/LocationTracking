@@ -4,6 +4,7 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 
 import io.reactivex.rxjava3.subjects.Subject;
 
@@ -18,7 +19,7 @@ public class ResultClass {
   }
 
   public String getCurrentDateTime(){
-      currentDateTime = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+      currentDateTime = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.UK).format(Calendar.getInstance().getTime());
       return currentDateTime;
   }
 
