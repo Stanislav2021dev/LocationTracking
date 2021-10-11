@@ -22,7 +22,6 @@ public class UploadToDbWorkManager extends Worker {
 
         ResultClass result = new ResultClass(dateTime, LoadData.toLatLng(coordinates));
         LoadData.uploadToRoomDb(result);
-        Log.v("Location", "WorkStarted  " + Utils.isOnline() + " " + coordinates);
         return Result.success();
     }
 }

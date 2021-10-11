@@ -111,12 +111,11 @@ public class GetCoordinates {
     }
 
     public ResultClass updateLocation() {
-        Log.v("Order", "updateLocation");
 
         if (currentLocation != null) {
             currentLatLng =
                     new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-            Log.v("Location", "CoordinatesModel " + currentLatLng);
+            Log.v("TakeCoordinates", "Take coordinates in foreground. Current location --> " + currentLatLng);
         }
         return new ResultClass(Utils.getCurrentTime(), currentLatLng);
     }

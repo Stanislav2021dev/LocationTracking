@@ -18,6 +18,7 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.example.locationtask6.R;
+import com.example.locationtask6.model.GetCoordinates;
 import com.example.locationtask6.model.LongWorker;
 import com.example.locationtask6.presenter.TrackPresenter;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -37,6 +38,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 222;
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
+    private GetCoordinates getCoordinates = new GetCoordinates();
 
 
     @InjectPresenter
@@ -51,43 +53,31 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-        trackPresenter.start();
-        getLocationPermission(this, trackPresenter);
-
     }
 
-    @Override
-    protected void onStart() {
-        Log.v("WorkRes", "OnStart");
-        super.onStart();
-    }
 
     @Override
     protected void onResume() {
-        Log.v("WorkRes", "OnResume");
+        Log.v("TakeCoordinates", "OnResume");
         cancelLongWorker();
+        trackPresenter.start();
+        getLocationPermission(this, trackPresenter);
         super.onResume();
 
     }
 
 
     @Override
-    protected void onPause() {
-        Log.v("WorkRes", "OnPause");
-        super.onPause();
-    }
-
-    @Override
     protected void onStop() {
-        Log.v("WorkRes", "OnStop");
+        Log.v("TakeCoordinates", "OnStop");
         runLongWorker();
+        trackPresenter.getGetCoordinates().stopLocationUpdates();
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
-        Log.v("WorkRes", "OnDestroy");
+        Log.v("TakeCoordinates", "OnDestroy");
         cancelLongWorker();
         super.onDestroy();
     }
@@ -106,9 +96,8 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     }
 
     public void getLocationPermission(Context context, TrackPresenter trackPresenter) {
-        Log.v("Loc", "GetLocationPermission()");
+        Log.v("Order", "GetLocationPermission()");
         String[] permissions = {FINE_LOCATION};
-
         if (context.checkSelfPermission(FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             trackPresenter.startLocationUpdates();
@@ -121,7 +110,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     @SuppressLint("MissingSuperCall")
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        Log.v("Loc", "OnRequestPermission()");
+        Log.v("Order", "OnRequestPermission()");
 
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {

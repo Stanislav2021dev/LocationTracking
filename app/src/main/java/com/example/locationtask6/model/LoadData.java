@@ -37,9 +37,8 @@ public class LoadData {
     private static boolean uploadSuccess;
 
 
-
     public static void initDb(){
-        Log.v("Location","InitDb");
+        Log.v("Data","InitDb");
         coordinatesDataBase= Room.databaseBuilder(LogInActivity.getContext(),CoordinatesDataBase.class,
                 "CoordinatesData").build();
         coordinatesDataBase.getCoordinatesDAO().deleteAllCoordinates();
@@ -48,7 +47,7 @@ public class LoadData {
 
     public static void uploadToRoomDb(ResultClass resultClass){
         if (!Utils.isOnline()) {
-            Log.v("Location", "UploadToDb");
+            Log.v("TakeCoordinates", "Upload coordinates to local DataBase");
             coordinatesDataBase.getCoordinatesDAO().addCoordinates(new CoordinatesModel(0, resultClass.getCurrentDateTime(),
                     resultClass.getCurrentLocation().toString()));
         }
@@ -63,14 +62,14 @@ public class LoadData {
                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
-                        Log.v("Location","UploadToFb");
+                        Log.v("TakeCoordinates","Upload coordinates to firebase");
                         uploadSuccess=true;
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Log.v("Location","Error ->" +e);
+                        Log.v("TakeCoordinates","Error ->" +e);
                         uploadSuccess=false;
                     }
                 });
@@ -85,10 +84,8 @@ public class LoadData {
         if (coordinatesModelList.size() != 0) {
 
             for (CoordinatesModel coord : coordinatesModelList) {
-
                 Log.v("Data", "Time " + coord.getDateTime() + " coordinates " + coord.getCoordinates()
                         + "Size " + LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates().size());
-                Log.v("Data", "Size" + coordinatesModelList.size());
                 LoadData.uploadToFireBase(new ResultClass(coord.getDateTime(), LoadData.toLatLng(coord.getCoordinates())));
                 LoadData.getCoordinatesDataBase().getCoordinatesDAO().delete(coord.getId());
             }

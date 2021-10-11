@@ -55,12 +55,12 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
     }
 
     public void start() {
-
+        Log.v("Order", "Start()");
         InjectModelInterface mInterface = EntryPoints.get(this, InjectModelInterface.class);
         getCoordinates = mInterface.getCoordinates();
         loadData = mInterface.getLoadData();
 
-        Log.v("Loc", "Start()");
+
         locationPoint= getCoordinates.getLocationPoint();
         locationPoint.subscribe(resultClassObserver());
 
@@ -142,10 +142,14 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
     public void onDestroy() {
         super.onDestroy();
         getCoordinates.stopLocationUpdates();
-        Log.v("WorkRes","OnDestroy");
+        Log.v("Order","OnDestroy");
     }
     public LoadData getLoadData(){
         return loadData;
     }
+    public GetCoordinates getGetCoordinates(){
+        return getCoordinates;
+    }
+
 
 }

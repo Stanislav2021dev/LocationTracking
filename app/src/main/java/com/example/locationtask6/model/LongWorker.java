@@ -14,12 +14,14 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.work.Data;
@@ -45,6 +47,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.function.Consumer;
 
 import static android.content.ContentValues.TAG;
 import static android.content.Context.NOTIFICATION_SERVICE;
@@ -71,36 +74,34 @@ public class LongWorker extends Worker {
         this.context=context;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.Q)
+
+    @RequiresApi(api = Build.VERSION_CODES.R)
     @NonNull
     @Override
     public Result doWork() {
 
-        Log.v("WorkRes", "do Work Long Worker");
+        Log.v("TakeCoordinates", "LongWorker doWork() ");
         LocationManager locationManager =
                 (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
 
         if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-
             ArrayBlockingQueue<Location> locations = new ArrayBlockingQueue<>(1);
-
-            locationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER, location -> {
+            locationManager.getCurrentLocation(LocationManager.GPS_PROVIDER, null, getApplicationContext().getMainExecutor(), location -> {
 
                 locations.offer(location);
-                latitude=String.valueOf(location.getLatitude());
-                longitude = String.valueOf(location.getLongitude());
-
-            }, Looper.getMainLooper());
+            });
 
             try {
                 Location location = locations.take();
+                latitude=String.valueOf(location.getLatitude());
+                longitude = String.valueOf(location.getLongitude());
 
                 LatLng currentLatLng =
                         new LatLng(location.getLatitude(), location.getLongitude());
 
                 uploadCoordinates(new ResultClass(Utils.getCurrentTime(),currentLatLng));
 
-                Log.v("WorkRes", "do Work  coordinates result " + location.getLatitude() + location.getLongitude());
+                Log.v("TakeCoordinates", "LongWorker. Current location --> " + location.getLatitude() +" "+ location.getLongitude());
 
                 setForegroundAsync(createNotification(latitude+longitude));
 
@@ -113,7 +114,7 @@ public class LongWorker extends Worker {
         else {
             return Result.failure();
         }
-}
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
     @NonNull
@@ -155,14 +156,10 @@ public class LongWorker extends Worker {
     }
 
     private void uploadCoordinates(ResultClass result){
-        boolean loadSucess = LoadData.uploadToFireBase(result);
-        Log.v("WorkRes","succes " + loadSucess);
-        if (!loadSucess || !Utils.isOnline()) {
+        boolean loadSuccess = LoadData.uploadToFireBase(result);
+        if (!loadSuccess || !Utils.isOnline()) {
             LoadData.uploadToRoomDb(result);
         }
         LoadData.uploadFromDbToFb();
     }
 }
-
-
-
