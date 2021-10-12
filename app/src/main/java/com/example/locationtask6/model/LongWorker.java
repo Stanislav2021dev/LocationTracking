@@ -89,15 +89,17 @@ public class LongWorker extends Worker {
                 LocationListener locationListener = new LocationListener() {
                     @Override
                     public void onLocationChanged(@NonNull Location location) {
-                        executorService.execute(new Runnable() {
-                            @Override
-                            public void run() {
-                                uploadCoordinates(new ResultClass(new Date(), new LatLng(location.getLatitude(), location.getLongitude())));
-                            }
-                        });
+                        if (!executorService.isShutdown()) {
+                            executorService.execute(new Runnable() {
+                                @Override
+                                public void run() {
+                                    uploadCoordinates(new ResultClass(new Date(), new LatLng(location.getLatitude(), location.getLongitude())));
+                                }
+                            });
+                        }
                     }
                 };
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener, Looper.getMainLooper());
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, locationListener, Looper.getMainLooper());
 
                 while (executorService.awaitTermination(1, TimeUnit.DAYS));
 

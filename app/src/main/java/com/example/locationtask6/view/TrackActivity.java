@@ -59,7 +59,6 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     @Override
     protected void onResume() {
         Log.v("TakeCoordinates", "OnResume");
-        cancelLongWorker();
         trackPresenter.start();
         getLocationPermission(this, trackPresenter);
         super.onResume();
@@ -70,7 +69,6 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     @Override
     protected void onStop() {
         Log.v("TakeCoordinates", "OnStop");
-        runLongWorker();
         trackPresenter.getGetCoordinates().stopLocationUpdates();
         super.onStop();
     }
@@ -78,7 +76,6 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     @Override
     protected void onDestroy() {
         Log.v("TakeCoordinates", "OnDestroy");
-        cancelLongWorker();
         super.onDestroy();
     }
 
@@ -140,17 +137,4 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
                 .setAction(action, listener).show();
     }
 
-    public void runLongWorker() {
-        PeriodicWorkRequest request = new PeriodicWorkRequest
-                .Builder(LongWorker.class, 15, TimeUnit.MINUTES)
-                .addTag("BackgroundWork")
-                .build();
-
-        WorkManager.getInstance(App.getContext())
-                .enqueueUniquePeriodicWork("Work", ExistingPeriodicWorkPolicy.REPLACE, request);
-    }
-
-    public void cancelLongWorker() {
-        WorkManager.getInstance(this).cancelAllWorkByTag("BackgroundWork");
-    }
 }
