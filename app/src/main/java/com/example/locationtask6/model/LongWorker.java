@@ -46,7 +46,12 @@ import com.google.android.gms.tasks.Task;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static android.content.ContentValues.TAG;
@@ -55,23 +60,17 @@ import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION;
 
 public class LongWorker extends Worker {
 
-    private static final String CHANNEL_ID = "channel_01";
     private static final int NOTIFICATION_ID = 123;
-    private NotificationManager mNotificationManager;
-    private Context context;
-    private String latitude;
-    private String longitude;
     private final String NOTIFICATION_CHANNEL_ID = "com.example.locationtask6.model";
     private final String CHANNEL_NAME = "My Background Service";
-    private LocationCallback mLocationCallback;
-    private FusedLocationProviderClient mFusedLocationClient;
-    private Location mLocation;
+
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
 
 
     public LongWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
-        this.context=context;
     }
 
 
@@ -81,33 +80,32 @@ public class LongWorker extends Worker {
     public Result doWork() {
 
         Log.v("TakeCoordinates", "LongWorker doWork() ");
-        LocationManager locationManager =
-                (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
-
         if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            ArrayBlockingQueue<Location> locations = new ArrayBlockingQueue<>(1);
-            locationManager.getCurrentLocation(LocationManager.GPS_PROVIDER, null, getApplicationContext().getMainExecutor(), location -> {
-
-                locations.offer(location);
-            });
-
             try {
-                Location location = locations.take();
-                latitude=String.valueOf(location.getLatitude());
-                longitude = String.valueOf(location.getLongitude());
+                setForegroundAsync(createNotification("Gathering location data...")).get();
 
-                LatLng currentLatLng =
-                        new LatLng(location.getLatitude(), location.getLongitude());
+                LocationManager locationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
 
-                uploadCoordinates(new ResultClass(Utils.getCurrentTime(),currentLatLng));
+                LocationListener locationListener = new LocationListener() {
+                    @Override
+                    public void onLocationChanged(@NonNull Location location) {
+                        executorService.execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                uploadCoordinates(new ResultClass(new Date(), new LatLng(location.getLatitude(), location.getLongitude())));
+                            }
+                        });
+                    }
+                };
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener, Looper.getMainLooper());
 
-                Log.v("TakeCoordinates", "LongWorker. Current location --> " + location.getLatitude() +" "+ location.getLongitude());
+                while (executorService.awaitTermination(1, TimeUnit.DAYS));
 
-                setForegroundAsync(createNotification(latitude+longitude));
+                locationManager.removeUpdates(locationListener);
 
                 return Result.success();
             }
-            catch (InterruptedException e) {
+            catch (InterruptedException | ExecutionException e) {
                 return Result.failure();
             }
         }
@@ -116,22 +114,27 @@ public class LongWorker extends Worker {
         }
     }
 
+    @Override
+    public void onStopped() {
+        super.onStopped();
+        executorService.shutdownNow();
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.Q)
     @NonNull
-    private ForegroundInfo createNotification(@NonNull String progress){
+    private ForegroundInfo createNotification(@NonNull String msg){
 
             createChannel();
 
-            String msg = latitude+ " "+longitude;
             String cancel = "Cancel";
 
-           PendingIntent intent = WorkManager.getInstance(context)
+           PendingIntent intent = WorkManager.getInstance(getApplicationContext())
                 .createCancelPendingIntent(getId());
 
-            PendingIntent activityPendingIntent = PendingIntent.getActivity(context, 0,
-                    new Intent(context, TrackActivity.class), 0);
+            PendingIntent activityPendingIntent = PendingIntent.getActivity(getApplicationContext(), 0,
+                    new Intent(getApplicationContext(), TrackActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK), 0);
 
-            Notification notification = new NotificationCompat.Builder(context,NOTIFICATION_CHANNEL_ID)
+            Notification notification = new NotificationCompat.Builder(getApplicationContext(),NOTIFICATION_CHANNEL_ID)
                     .addAction(R.drawable.ic_baseline_launch_24, "Launch Activity", activityPendingIntent)
                     .addAction(android.R.drawable.ic_delete, cancel, intent)
                     .setContentText(msg)
@@ -143,14 +146,14 @@ public class LongWorker extends Worker {
                     .setTicker(msg)
                     .setWhen(System.currentTimeMillis())
                     .build();
-            return new ForegroundInfo(NOTIFICATION_ID,notification,FOREGROUND_SERVICE_TYPE_LOCATION);
+            return new ForegroundInfo(NOTIFICATION_ID,notification);
         }
 
     private void createChannel() {
         NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
         chan.setLightColor(Color.BLUE);
         chan.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
-        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManager manager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
         assert manager != null;
         manager.createNotificationChannel(chan);
     }
