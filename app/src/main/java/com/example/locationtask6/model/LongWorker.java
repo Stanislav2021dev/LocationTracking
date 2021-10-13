@@ -78,6 +78,7 @@ public class LongWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        LoadData.initDb();
 
         Log.v("TakeCoordinates", "LongWorker doWork() ");
         if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -93,7 +94,13 @@ public class LongWorker extends Worker {
                             executorService.execute(new Runnable() {
                                 @Override
                                 public void run() {
-                                    uploadCoordinates(new ResultClass(new Date(), new LatLng(location.getLatitude(), location.getLongitude())));
+                                    try {
+                                        Log.v("TakeCoordinates", "uploadCoordinates start");
+                                        uploadCoordinates(new ResultClass(new Date(), new LatLng(location.getLatitude(), location.getLongitude())));
+                                        Log.v("TakeCoordinates", "uploadCoordinates finish");
+                                    } catch (Throwable t) {
+                                        Log.e("TakeCoordinates", "uploadCoordinates failed", t);
+                                    }
                                 }
                             });
                         }

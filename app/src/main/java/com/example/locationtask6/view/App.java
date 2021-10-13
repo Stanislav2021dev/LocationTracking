@@ -14,6 +14,7 @@ import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
+import com.example.locationtask6.model.LoadData;
 import com.example.locationtask6.model.LongWorker;
 
 import java.util.concurrent.TimeUnit;

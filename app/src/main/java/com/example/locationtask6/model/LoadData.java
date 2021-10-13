@@ -37,9 +37,13 @@ public class LoadData {
     private static boolean uploadSuccess;
 
 
-    public static void initDb(){
+    public static synchronized void initDb(){
         Log.v("Data","InitDb");
-        coordinatesDataBase= Room.databaseBuilder(LogInActivity.getContext(),CoordinatesDataBase.class,
+        if (coordinatesDataBase != null) {
+            return;
+        }
+
+        coordinatesDataBase= Room.databaseBuilder(App.getInstance(),CoordinatesDataBase.class,
                 "CoordinatesData").build();
         coordinatesDataBase.getCoordinatesDAO().deleteAllCoordinates();
     }

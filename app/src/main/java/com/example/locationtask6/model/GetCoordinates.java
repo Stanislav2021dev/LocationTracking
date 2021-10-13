@@ -93,21 +93,21 @@ public class GetCoordinates {
                     fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback,
                             Looper.myLooper());
 
-                })
-
-                .addOnFailureListener(LogInActivity.getInstance(), e -> {
-                    int statusCode = ((ApiException) e).getStatusCode();
-                    if (statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
-                        try {
-                            ResolvableApiException
-                                    resolvableApiException =
-                                    (ResolvableApiException) e;
-                            resolvableApiException.startResolutionForResult(LogInActivity.getInstance(), CHECK_SETTINGS_CODE);
-                        } catch (IntentSender.SendIntentException sie) {
-                            sie.printStackTrace();
-                        }
-                    }
                 });
+//
+//                .addOnFailureListener(LogInActivity.getInstance(), e -> {
+//                    int statusCode = ((ApiException) e).getStatusCode();
+//                    if (statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
+//                        try {
+//                            ResolvableApiException
+//                                    resolvableApiException =
+//                                    (ResolvableApiException) e;
+//                            resolvableApiException.startResolutionForResult(LogInActivity.getInstance(), CHECK_SETTINGS_CODE);
+//                        } catch (IntentSender.SendIntentException sie) {
+//                            sie.printStackTrace();
+//                        }
+//                    }
+//                });
     }
 
     public ResultClass updateLocation() {

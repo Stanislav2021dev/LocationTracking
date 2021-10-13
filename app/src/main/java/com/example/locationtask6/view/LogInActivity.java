@@ -21,21 +21,11 @@ public class LogInActivity extends MvpAppCompatActivity implements LogInInterfac
     LogInPresenter logInPresenter;
 
     private LoginBinding binding;
-    static LogInActivity logInActivity;
-
-    private static LogInActivity instance;
-    public LogInActivity() {
-        instance = this;
-    }
-    public static Context getContext() {
-        return instance;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.login);
-        logInActivity=this;
         binding = DataBindingUtil.setContentView(this, R.layout.login);
 
         binding.singUpButton.setOnClickListener(v ->{
@@ -54,8 +44,6 @@ public class LogInActivity extends MvpAppCompatActivity implements LogInInterfac
                 });
     }
 
-    public static LogInActivity getInstance() {
-        return logInActivity; }
 
     public String getEmail(){
         return binding.textInputEmail.getEditText().getText().toString().trim();
