@@ -2,8 +2,10 @@ package com.example.locationtask6.view;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -13,13 +15,9 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
-import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.PeriodicWorkRequest;
-import androidx.work.WorkManager;
 
 import com.example.locationtask6.R;
 import com.example.locationtask6.model.GetCoordinates;
-import com.example.locationtask6.model.LongWorker;
 import com.example.locationtask6.presenter.TrackPresenter;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -29,8 +27,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.util.concurrent.TimeUnit;
-
 import moxy.MvpAppCompatActivity;
 import moxy.presenter.InjectPresenter;
 
@@ -38,12 +34,13 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 222;
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
-    private GetCoordinates getCoordinates = new GetCoordinates();
-
 
     @InjectPresenter
     public TrackPresenter trackPresenter;
     private GoogleMap mMap;
+
+    public TrackActivity() {
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,30 +50,32 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-    }
 
+        PendingIntent pendingIntent = getIntent().getParcelableExtra("ApiExeption");
+
+        if (pendingIntent !=null){
+            try {
+                startIntentSenderForResult(pendingIntent.getIntentSender(), LOCATION_PERMISSION_REQUEST_CODE,
+                        null, 0, 0, 0);
+            } catch (IntentSender.SendIntentException e) {
+                Log.e("Error", "Error " + e);
+            }
+        }
+    }
 
     @Override
-    protected void onResume() {
-        Log.v("TakeCoordinates", "OnResume");
+    protected void onStart() {
+        Log.v("TakeCoordinates", "OnStart");
         trackPresenter.start();
-        getLocationPermission(this, trackPresenter);
-        super.onResume();
-
+        getLocationPermission();
+        super.onStart();
     }
-
 
     @Override
     protected void onStop() {
         Log.v("TakeCoordinates", "OnStop");
         trackPresenter.getGetCoordinates().stopLocationUpdates();
         super.onStop();
-    }
-
-    @Override
-    protected void onDestroy() {
-        Log.v("TakeCoordinates", "OnDestroy");
-        super.onDestroy();
     }
 
     @Override
@@ -92,10 +91,10 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
 
     }
 
-    public void getLocationPermission(Context context, TrackPresenter trackPresenter) {
+    public void getLocationPermission() {
         Log.v("Order", "GetLocationPermission()");
         String[] permissions = {FINE_LOCATION};
-        if (context.checkSelfPermission(FINE_LOCATION)
+        if (App.getContext().checkSelfPermission(FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             trackPresenter.startLocationUpdates();
         } else {
@@ -124,6 +123,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         }
     }
 
+
     @Override
     public void addPoint(LatLng currentLatLng) {
         mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
@@ -136,5 +136,6 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         Snackbar.make(findViewById(android.R.id.content), mainText, Snackbar.LENGTH_INDEFINITE)
                 .setAction(action, listener).show();
     }
+
 
 }

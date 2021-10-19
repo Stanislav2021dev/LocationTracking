@@ -2,6 +2,7 @@ package com.example.locationtask6.model;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -13,6 +14,7 @@ import androidx.core.app.ActivityCompat;
 
 import com.example.locationtask6.view.App;
 import com.example.locationtask6.view.LogInActivity;
+import com.example.locationtask6.view.TrackActivity;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -48,11 +50,11 @@ public class GetCoordinates {
 
     }
 
-    public void buildLocationRequest() {
+    public void buildLocationRequest(int interval) {
         Log.v("Order", "Build Location Request");
         locationRequest = new LocationRequest();
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(10000);
+        locationRequest.setInterval(interval);
+        locationRequest.setFastestInterval(interval);
         // locationRequest.setSmallestDisplacement(10);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
@@ -93,21 +95,21 @@ public class GetCoordinates {
                     fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback,
                             Looper.myLooper());
 
+                })
+                .addOnFailureListener(e -> {
+                    int statusCode = ((ApiException) e).getStatusCode();
+                    if (statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
+
+                        Intent intent = new Intent(context, TrackActivity.class);
+
+                        ResolvableApiException
+                                resolvableApiException =
+                                (ResolvableApiException) e;
+
+                        intent.putExtra("ApiExeption", resolvableApiException.getResolution());
+
+                    }
                 });
-//
-//                .addOnFailureListener(LogInActivity.getInstance(), e -> {
-//                    int statusCode = ((ApiException) e).getStatusCode();
-//                    if (statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
-//                        try {
-//                            ResolvableApiException
-//                                    resolvableApiException =
-//                                    (ResolvableApiException) e;
-//                            resolvableApiException.startResolutionForResult(LogInActivity.getInstance(), CHECK_SETTINGS_CODE);
-//                        } catch (IntentSender.SendIntentException sie) {
-//                            sie.printStackTrace();
-//                        }
-//                    }
-//                });
     }
 
     public ResultClass updateLocation() {
@@ -115,7 +117,7 @@ public class GetCoordinates {
         if (currentLocation != null) {
             currentLatLng =
                     new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-            Log.v("TakeCoordinates", "Take coordinates in foreground. Current location --> " + currentLatLng);
+            Log.v("TakeCoordinates", "Taking coordinates. Current location --> " + currentLatLng);
         }
         return new ResultClass(Utils.getCurrentTime(), currentLatLng);
     }
@@ -127,4 +129,6 @@ public class GetCoordinates {
     public Subject<ResultClass> getLocationPoint() {
         return locationSubject;
     }
+
+
 }

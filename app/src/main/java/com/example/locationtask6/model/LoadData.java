@@ -19,6 +19,8 @@ import com.example.locationtask6.view.App;
 import com.example.locationtask6.view.LogInActivity;
 import com.example.locationtask6.view.TrackActivity;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCanceledListener;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.DocumentReference;
@@ -82,20 +84,19 @@ public class LoadData {
 
     public static void uploadFromDbToFb() {
 
-        List<CoordinatesModel> coordinatesModelList; coordinatesModelList =
-                LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates();
+        List<CoordinatesModel> coordinatesModelList;
+        coordinatesModelList = LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates();
 
         if (coordinatesModelList.size() != 0) {
-
+            Log.v("TakeCoordinates","Upload from DB to Fb");
             for (CoordinatesModel coord : coordinatesModelList) {
-                Log.v("Data", "Time " + coord.getDateTime() + " coordinates " + coord.getCoordinates()
-                        + "Size " + LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates().size());
+       //         Log.v("TakeCoordinates", "Time " + coord.getDateTime() + " coordinates " + coord.getCoordinates()
+       //                 + "Size " + LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates().size());
                 LoadData.uploadToFireBase(new ResultClass(coord.getDateTime(), LoadData.toLatLng(coord.getCoordinates())));
                 LoadData.getCoordinatesDataBase().getCoordinatesDAO().delete(coord.getId());
             }
         }
     }
-
 
     public static LatLng  toLatLng(String coordinates){
         String[] latlong = coordinates.split(",");
@@ -107,7 +108,6 @@ public class LoadData {
     public static CoordinatesDataBase getCoordinatesDataBase(){
         return coordinatesDataBase;
     }
-
 }
 
 
