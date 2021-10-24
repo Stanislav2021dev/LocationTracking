@@ -17,7 +17,6 @@ public class CanceluploadToFbWorkManager extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-
         WorkManager.getInstance(App.getContext()).cancelAllWorkByTag("fb");
         return Result.success();
 

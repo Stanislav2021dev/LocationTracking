@@ -91,9 +91,9 @@ public class TrackPresenter extends MvpPresenter<TrackInterface> implements Inje
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        getCoordinates.stopLocationUpdates();
         Log.v("Order","OnDestroy");
+        super.onDestroy();
+
     }
     public LoadData getLoadData(){
         return loadData;

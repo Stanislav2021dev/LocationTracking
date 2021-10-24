@@ -2,9 +2,10 @@ package com.example.locationtask6.view;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -15,9 +16,11 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.locationtask6.R;
-import com.example.locationtask6.model.GetCoordinates;
+import com.example.locationtask6.model.LocationUpdatesService;
+import com.example.locationtask6.model.LocationSettingsChangeReciver;
 import com.example.locationtask6.presenter.TrackPresenter;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -30,10 +33,16 @@ import com.google.android.material.snackbar.Snackbar;
 import moxy.MvpAppCompatActivity;
 import moxy.presenter.InjectPresenter;
 
+import static android.location.LocationManager.PROVIDERS_CHANGED_ACTION;
+
 public class TrackActivity extends MvpAppCompatActivity implements TrackInterface, OnMapReadyCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 222;
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
+    private Intent mIntent;
+    public static LocationSettingsChangeReciver mReceiver;
+    private SnackBarViewClass snackbar = new SnackBarViewClass();
+    protected App mApp;
 
     @InjectPresenter
     public TrackPresenter trackPresenter;
@@ -46,15 +55,19 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        mApp = (App)this.getApplicationContext();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        PendingIntent pendingIntent = getIntent().getParcelableExtra("ApiExeption");
+        mIntent = new Intent(getApplicationContext(), LocationUpdatesService.class);
 
+        PendingIntent pendingIntent = getIntent().getParcelableExtra("ApiExeption");
         if (pendingIntent !=null){
+
             try {
+                Log.v("TakeCoordinates","ApiException");
                 startIntentSenderForResult(pendingIntent.getIntentSender(), LOCATION_PERMISSION_REQUEST_CODE,
                         null, 0, 0, 0);
             } catch (IntentSender.SendIntentException e) {
@@ -64,19 +77,50 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        mApp.setCurrentActivity(this);
+    }
+
+    @Override
     protected void onStart() {
         Log.v("TakeCoordinates", "OnStart");
+        if (mIntent!=null){
+            Log.v("TakeCoordinates","Stop Service");
+            stopService(mIntent);
+        }
         trackPresenter.start();
         getLocationPermission();
         super.onStart();
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        clearReferences();
+    }
+
+    @Override
     protected void onStop() {
         Log.v("TakeCoordinates", "OnStop");
-        trackPresenter.getGetCoordinates().stopLocationUpdates();
+            trackPresenter.getGetCoordinates().stopLocationUpdates();
+            startService(mIntent);
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(mReceiver);
         super.onStop();
     }
+
+    @Override
+    protected void onDestroy() {
+        trackPresenter.getGetCoordinates().stopLocationUpdates();
+        if (mIntent!=null){
+            Log.v("TakeCoordinates","Stop Service");
+            stopService(mIntent);
+        }
+        Log.v("TakeCoordinates", "Destroy TrackActivity");
+        clearReferences();
+        super.onDestroy();
+    }
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -92,12 +136,16 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     }
 
     public void getLocationPermission() {
-        Log.v("Order", "GetLocationPermission()");
+
         String[] permissions = {FINE_LOCATION};
         if (App.getContext().checkSelfPermission(FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
+
             trackPresenter.startLocationUpdates();
+            registerBroadcastReceiver();
+
         } else {
+
             ActivityCompat.requestPermissions(this,
                     permissions, LOCATION_PERMISSION_REQUEST_CODE);
         }
@@ -106,23 +154,19 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     @SuppressLint("MissingSuperCall")
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        Log.v("Order", "OnRequestPermission()");
-
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 trackPresenter.startLocationUpdates();
+                registerBroadcastReceiver();
 
             } else {
-                showSnackBar("Location permission needed", "Allow", v -> {
-                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            Uri.parse("package:" + getPackageName()));
-                    finish();
-                    startActivity(intent);
-                });
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:" + getPackageName()));
+                snackbar.createSnackBar(this,"Location permission needed","Allow permission",
+                       intent);
             }
         }
     }
-
 
     @Override
     public void addPoint(LatLng currentLatLng) {
@@ -137,5 +181,15 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
                 .setAction(action, listener).show();
     }
 
+    public void registerBroadcastReceiver(){
+        mReceiver = new LocationSettingsChangeReciver();
+        IntentFilter filter = new IntentFilter(PROVIDERS_CHANGED_ACTION);
+        registerReceiver(mReceiver,filter,0);
+    }
 
+    private void clearReferences(){
+        Activity currentActivity = mApp.getCurrentActivity();
+        if (this.equals(currentActivity))
+            mApp.setCurrentActivity(null);
+    }
 }
