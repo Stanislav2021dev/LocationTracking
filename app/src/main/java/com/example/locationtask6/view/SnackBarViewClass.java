@@ -16,12 +16,15 @@ import com.google.android.material.snackbar.Snackbar;
 
 public class SnackBarViewClass extends Activity {
 
-    public void createSnackBar(Context context, String mainText, String action, Intent intent){
+    public Snackbar createSnackBar(Context context, String mainText, String action, Intent intent){
 
-        Snackbar.make(context,((Activity) context).findViewById(android.R.id.content) ,mainText,Snackbar.LENGTH_INDEFINITE)
+        Snackbar snackbar =
+           Snackbar.make(context,((Activity) context).findViewById(android.R.id.content) ,mainText,Snackbar.LENGTH_INDEFINITE)
                 .setAction(action, v -> {
                     finish();
                     context.startActivity(intent);
-                }).show();
+                });
+        snackbar.show();
+        return snackbar;
     }
 }

@@ -44,23 +44,20 @@ public class LocationSettingsChangeReciver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
 
         Log.v("TakeCoordinates", "Receive Broadcast");
-        LocationManager
-                locationManager =
-                (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-        boolean gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
 
 
-        if (!gpsEnabled && Utils.isAppOnForeground(context)) {
+
+        if (!Utils.isGpsEnabled() && Utils.isAppOnForeground(context)) {
             Intent turnOnLocationIntent=new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             snackBar.createSnackBar(context,"Turn on Location!", "Ok",turnOnLocationIntent);
         }
 
-        else if (!gpsEnabled && !Utils.isAppOnForeground(context)) {
+        else if (!Utils.isGpsEnabled() && !Utils.isAppOnForeground(context)) {
             notifications.errorNotification();
           //  context.stopService(serviceIntent);
         }
 
-        else if (gpsEnabled && !Utils.isAppOnForeground(context)) {
+        else if (Utils.isGpsEnabled() && !Utils.isAppOnForeground(context)) {
             context.startService(serviceIntent);
              NotificationManager notificationManager =
                    (NotificationManager) App.getContext().getSystemService(NOTIFICATION_SERVICE);

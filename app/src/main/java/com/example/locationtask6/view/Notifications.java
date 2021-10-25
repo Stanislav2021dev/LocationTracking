@@ -88,39 +88,6 @@ public class Notifications {
 
     }
 
-
-
-    @SuppressLint("SimpleDateFormat")
-    @RequiresApi(api = Build.VERSION_CODES.Q)
-    @NonNull
-    public Notification  turnOnGpsNotification(){
-
-        createChannel();
-
-        PendingIntent startActivityPendingIntent = PendingIntent.getActivity(App.getContext(), 0,
-                new Intent(App.getContext(), TrackActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK), 0);
-
-        Intent intent = new Intent("ACTION_FINISH");
-
-        FinishAppReceiver finishAppReceiver = new FinishAppReceiver();
-        IntentFilter filter = new IntentFilter("ACTION_FINISH");
-        App.getContext().registerReceiver(finishAppReceiver,filter,0);
-
-        PendingIntent closeAppPendingIntent= PendingIntent.getBroadcast(App.getContext(),0,intent,0);
-
-
-       return new NotificationCompat.Builder(App.getContext(),NOTIFICATION_CHANNEL_ID)
-                .addAction(R.mipmap.ic_launcher_round, NOTIFICATION_BTN_TEXT, startActivityPendingIntent)
-                .addAction(R.mipmap.ic_launcher_round,"Close App",closeAppPendingIntent)
-              //  .setContentText(msg)
-                .setContentTitle("Location is turned on. Please, launch activity to continue the location updates!")
-                .setOngoing(true)
-                .setPriority(NotificationManager.IMPORTANCE_HIGH)
-                .setCategory(Notification.CATEGORY_SERVICE)
-                .setSmallIcon(R.drawable.ic_baseline_launch_24)
-                .build();
-    }
-
     private void createChannel() {
         NotificationChannel chan =
                 new NotificationChannel(NOTIFICATION_CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);

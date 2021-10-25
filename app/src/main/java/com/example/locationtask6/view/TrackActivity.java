@@ -4,6 +4,8 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
@@ -21,6 +23,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.example.locationtask6.R;
 import com.example.locationtask6.model.LocationUpdatesService;
 import com.example.locationtask6.model.LocationSettingsChangeReciver;
+import com.example.locationtask6.model.Utils;
 import com.example.locationtask6.presenter.TrackPresenter;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -43,6 +46,9 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     public static LocationSettingsChangeReciver mReceiver;
     private SnackBarViewClass snackbar = new SnackBarViewClass();
     protected App mApp;
+    private BroadcastReceiver apiExeptionReceiver;
+    private SnackBarViewClass snackBarViewClass = new SnackBarViewClass();
+    private Snackbar errorSnackBar;
 
     @InjectPresenter
     public TrackPresenter trackPresenter;
@@ -55,38 +61,31 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        mApp = (App)this.getApplicationContext();
+
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+
+        takeApiExeption();
+        registerReceiver(apiExeptionReceiver, new IntentFilter("API_EXCEPTION"), 0);
         mIntent = new Intent(getApplicationContext(), LocationUpdatesService.class);
-
-        PendingIntent pendingIntent = getIntent().getParcelableExtra("ApiExeption");
-        if (pendingIntent !=null){
-
-            try {
-                Log.v("TakeCoordinates","ApiException");
-                startIntentSenderForResult(pendingIntent.getIntentSender(), LOCATION_PERMISSION_REQUEST_CODE,
-                        null, 0, 0, 0);
-            } catch (IntentSender.SendIntentException e) {
-                Log.e("Error", "Error " + e);
-            }
-        }
     }
+
 
     @Override
     protected void onResume() {
+
+        hideSnackBar();
         super.onResume();
-        mApp.setCurrentActivity(this);
     }
 
     @Override
     protected void onStart() {
         Log.v("TakeCoordinates", "OnStart");
-        if (mIntent!=null){
-            Log.v("TakeCoordinates","Stop Service");
+        if (mIntent != null) {
+            Log.v("TakeCoordinates", "Stop Service");
             stopService(mIntent);
         }
         trackPresenter.start();
@@ -95,29 +94,22 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        clearReferences();
-    }
-
-    @Override
     protected void onStop() {
         Log.v("TakeCoordinates", "OnStop");
-            trackPresenter.getGetCoordinates().stopLocationUpdates();
-            startService(mIntent);
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(mReceiver);
+        trackPresenter.getGetCoordinates().stopLocationUpdates();
+        startService(mIntent);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mReceiver);
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
         trackPresenter.getGetCoordinates().stopLocationUpdates();
-        if (mIntent!=null){
-            Log.v("TakeCoordinates","Stop Service");
+        if (mIntent != null) {
+            Log.v("TakeCoordinates", "Stop Service");
             stopService(mIntent);
         }
         Log.v("TakeCoordinates", "Destroy TrackActivity");
-        clearReferences();
         super.onDestroy();
     }
 
@@ -136,7 +128,6 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     }
 
     public void getLocationPermission() {
-
         String[] permissions = {FINE_LOCATION};
         if (App.getContext().checkSelfPermission(FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -162,8 +153,8 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
             } else {
                 Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         Uri.parse("package:" + getPackageName()));
-                snackbar.createSnackBar(this,"Location permission needed","Allow permission",
-                       intent);
+                snackbar.createSnackBar(this, "Location permission needed", "Allow permission",
+                        intent);
             }
         }
     }
@@ -181,15 +172,33 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
                 .setAction(action, listener).show();
     }
 
-    public void registerBroadcastReceiver(){
+    public void registerBroadcastReceiver() {
         mReceiver = new LocationSettingsChangeReciver();
         IntentFilter filter = new IntentFilter(PROVIDERS_CHANGED_ACTION);
-        registerReceiver(mReceiver,filter,0);
+        registerReceiver(mReceiver, filter, 0);
     }
 
-    private void clearReferences(){
-        Activity currentActivity = mApp.getCurrentActivity();
-        if (this.equals(currentActivity))
-            mApp.setCurrentActivity(null);
+
+    public void takeApiExeption() {
+        apiExeptionReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.v("TakeCoordinates","ApiExeprion Receiver");
+                if (Utils.isAppOnForeground(context)) {
+                    Intent
+                            turnOnLocationIntent =
+                            new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                     errorSnackBar =
+                            snackBarViewClass.createSnackBar(context , "Turn On Location", "Ok", turnOnLocationIntent);
+
+                }
+            }
+        };
+    }
+    public void hideSnackBar(){
+        if (Utils.isGpsEnabled() && errorSnackBar!=null && errorSnackBar.isShown()) {
+            errorSnackBar.dismiss();
+        }
     }
 }

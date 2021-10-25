@@ -3,6 +3,7 @@ package com.example.locationtask6.model;
 import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -42,4 +43,13 @@ public class Utils {
         }
         return true;
     }
+
+    public static boolean  isGpsEnabled(){
+        LocationManager
+                locationManager =
+                (android.location.LocationManager) App.getContext().getSystemService(Context.LOCATION_SERVICE);
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+
 }

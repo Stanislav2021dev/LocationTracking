@@ -32,6 +32,7 @@ import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Collections;
 
@@ -40,22 +41,18 @@ import io.reactivex.rxjava3.subjects.Subject;
 
 public class GetCoordinates {
 
-    private static final int CHECK_SETTINGS_CODE = 111;
-    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+
     private final Subject<ResultClass> locationSubject = PublishSubject.create();
     private final Context context = App.getContext();
     private LocationSettingsRequest locationSettingsRequest;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
     private FusedLocationProviderClient fusedLocationClient;
-    private SettingsClient settingsClient;
     private Location currentLocation;
     private LatLng currentLatLng;
     private ResultClass currentPoint;
-    private final int notificationId = 1234;
-    private Notifications notification = new Notifications();
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
-    private SnackBarViewClass snackBar = new SnackBarViewClass();
+
     public GetCoordinates() {
 
     }
@@ -118,24 +115,22 @@ public class GetCoordinates {
                         case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
 
                             Log.v("TakeCoordinates","RESOLUTION_REQUIRED");
-
-                            if (Utils.isAppOnForeground(context) && App.getInstance().getCurrentActivity()!=null){
-                                Intent turnOnLocationIntent=new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                snackBar.createSnackBar(App.getInstance().getCurrentActivity(),"Turn On Location", "Ok", turnOnLocationIntent);
-                            }
-
-
-
                             try {
                                 ResolvableApiException
                                         resolvableApiException =
                                         (ResolvableApiException) exception;
-                                Intent intent = new Intent(context, TrackActivity.class);
-                                intent.putExtra("ApiExeption", resolvableApiException.getResolution());
+                                Intent intent = new Intent("API_EXCEPTION");
+                                intent.putExtra("ApiException", resolvableApiException.getResolution());
 
-                            } catch (ClassCastException e) {
+                                PendingIntent pendingIntent = PendingIntent.getBroadcast(context,0,intent,0);
+                                pendingIntent.send(context,0,intent);
+
+                            } catch (ClassCastException | PendingIntent.CanceledException e) {
                                 // Ignore, should be an impossible error.
                             }
+
+
+
                             break;
                         case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
                             Log.v("TakeCoordinates","SETTINGS_CHANGE_UNAVAILABLE");

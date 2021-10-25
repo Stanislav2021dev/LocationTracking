@@ -15,16 +15,6 @@ import androidx.lifecycle.ProcessLifecycleOwner;
 public class App extends Application {
 
     private static App instance;
-    private Activity mCurrentActivity = null;
-
-    public Activity getCurrentActivity(){
-        return mCurrentActivity;
-    }
-
-    public void setCurrentActivity(Activity mCurrentActivity){
-        this.mCurrentActivity = mCurrentActivity;
-    }
-
     public static App getInstance() {
         return instance; }
 
@@ -36,14 +26,6 @@ public class App extends Application {
     @Override public void onCreate(){
         super.onCreate();
         instance = this;
-    }
-
-
-    @Override
-    public void onTerminate() {
-
-
-        super.onTerminate();
     }
 
 }
