@@ -119,7 +119,7 @@ public class GetCoordinates {
                                 ResolvableApiException
                                         resolvableApiException =
                                         (ResolvableApiException) exception;
-                                Intent intent = new Intent("API_EXCEPTION");
+                                Intent intent = new Intent("SHOW_SNACKBAR");
                                 intent.putExtra("ApiException", resolvableApiException.getResolution());
 
                                 PendingIntent pendingIntent = PendingIntent.getBroadcast(context,0,intent,0);

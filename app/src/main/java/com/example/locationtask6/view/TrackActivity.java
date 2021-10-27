@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -45,10 +46,9 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     private Intent mIntent;
     public static LocationSettingsChangeReciver mReceiver;
     private SnackBarViewClass snackbar = new SnackBarViewClass();
-    protected App mApp;
     private BroadcastReceiver apiExeptionReceiver;
-    private SnackBarViewClass snackBarViewClass = new SnackBarViewClass();
     private Snackbar errorSnackBar;
+    private boolean firstCreate= true;
 
     @InjectPresenter
     public TrackPresenter trackPresenter;
@@ -61,24 +61,25 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-
-
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
 
-        takeApiExeption();
-        registerReceiver(apiExeptionReceiver, new IntentFilter("API_EXCEPTION"), 0);
+
         mIntent = new Intent(getApplicationContext(), LocationUpdatesService.class);
     }
 
 
     @Override
     protected void onResume() {
-
         hideSnackBar();
         super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 
     @Override
@@ -98,7 +99,6 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         Log.v("TakeCoordinates", "OnStop");
         trackPresenter.getGetCoordinates().stopLocationUpdates();
         startService(mIntent);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mReceiver);
         super.onStop();
     }
 
@@ -110,6 +110,8 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
             stopService(mIntent);
         }
         Log.v("TakeCoordinates", "Destroy TrackActivity");
+        unregisterReceiver(mReceiver);
+        unregisterReceiver(apiExeptionReceiver);
         super.onDestroy();
     }
 
@@ -124,19 +126,15 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
             return;
         }
         mMap.setMyLocationEnabled(true);
-
     }
 
     public void getLocationPermission() {
         String[] permissions = {FINE_LOCATION};
         if (App.getContext().checkSelfPermission(FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
-
             trackPresenter.startLocationUpdates();
-            registerBroadcastReceiver();
 
         } else {
-
             ActivityCompat.requestPermissions(this,
                     permissions, LOCATION_PERMISSION_REQUEST_CODE);
         }
@@ -147,8 +145,14 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                if (firstCreate){
+                    registerBroadcastReceiver();
+                    takeApiExeption();
+                    registerReceiver(apiExeptionReceiver, new IntentFilter("SHOW_SNACKBAR"), 0);
+                    firstCreate=false;
+                }
                 trackPresenter.startLocationUpdates();
-                registerBroadcastReceiver();
 
             } else {
                 Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -172,25 +176,18 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
                 .setAction(action, listener).show();
     }
 
-    public void registerBroadcastReceiver() {
-        mReceiver = new LocationSettingsChangeReciver();
-        IntentFilter filter = new IntentFilter(PROVIDERS_CHANGED_ACTION);
-        registerReceiver(mReceiver, filter, 0);
-    }
-
-
     public void takeApiExeption() {
         apiExeptionReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Log.v("TakeCoordinates","ApiExeprion Receiver");
-                if (Utils.isAppOnForeground(context)) {
+                    hideSnackBar();
+                 if (Utils.isAppOnForeground(context) && !Utils.isGpsEnabled()) {
                     Intent
                             turnOnLocationIntent =
                             new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
                      errorSnackBar =
-                            snackBarViewClass.createSnackBar(context , "Turn On Location", "Ok", turnOnLocationIntent);
+                            snackbar.createSnackBar(context , "Turn On Location", "Ok", turnOnLocationIntent);
 
                 }
             }
@@ -200,5 +197,10 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         if (Utils.isGpsEnabled() && errorSnackBar!=null && errorSnackBar.isShown()) {
             errorSnackBar.dismiss();
         }
+    }
+    public void registerBroadcastReceiver() {
+        mReceiver = new LocationSettingsChangeReciver();
+        IntentFilter filter = new IntentFilter(PROVIDERS_CHANGED_ACTION);
+        registerReceiver(mReceiver, filter, 0);
     }
 }
