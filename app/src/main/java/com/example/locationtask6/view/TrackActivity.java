@@ -132,6 +132,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         String[] permissions = {FINE_LOCATION};
         if (App.getContext().checkSelfPermission(FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
+            registerBroadcastReceivers();
             trackPresenter.startLocationUpdates();
 
         } else {
@@ -146,12 +147,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                if (firstCreate){
-                    registerBroadcastReceiver();
-                    takeApiExeption();
-                    registerReceiver(apiExeptionReceiver, new IntentFilter("SHOW_SNACKBAR"), 0);
-                    firstCreate=false;
-                }
+                registerBroadcastReceivers();
                 trackPresenter.startLocationUpdates();
 
             } else {
@@ -176,7 +172,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
                 .setAction(action, listener).show();
     }
 
-    public void takeApiExeption() {
+    public void createApiExeptionReceiver() {
         apiExeptionReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -198,9 +194,14 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
             errorSnackBar.dismiss();
         }
     }
-    public void registerBroadcastReceiver() {
-        mReceiver = new LocationSettingsChangeReciver();
-        IntentFilter filter = new IntentFilter(PROVIDERS_CHANGED_ACTION);
-        registerReceiver(mReceiver, filter, 0);
+    public void registerBroadcastReceivers() {
+        if (firstCreate) {
+            mReceiver = new LocationSettingsChangeReciver();
+            IntentFilter filter = new IntentFilter(PROVIDERS_CHANGED_ACTION);
+            registerReceiver(mReceiver, filter, 0);
+            createApiExeptionReceiver();
+            registerReceiver(apiExeptionReceiver, new IntentFilter("SHOW_SNACKBAR"), 0);
+            firstCreate=false;
+        }
     }
 }
