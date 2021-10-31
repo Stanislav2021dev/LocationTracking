@@ -129,8 +129,6 @@ public class GetCoordinates {
                                 // Ignore, should be an impossible error.
                             }
 
-
-
                             break;
                         case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
                             Log.v("TakeCoordinates","SETTINGS_CHANGE_UNAVAILABLE");

@@ -23,19 +23,24 @@ import com.google.android.gms.tasks.OnCanceledListener;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 public class LoadData {
     private static CoordinatesDataBase coordinatesDataBase;
-    private static final HashMap<String, LatLng> coordinates=new HashMap<>();
-    private static FirebaseFirestore db;
+    private static final HashMap<String, Object> coordinates=new HashMap<>();
+   // private static FirebaseFirestore db;
     private static boolean uploadSuccess;
 
 
@@ -60,25 +65,31 @@ public class LoadData {
     }
 
     public static boolean uploadToFireBase(ResultClass resultClass){
+        String date = new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date());
 
-        coordinates.put(resultClass.getCurrentDateTime(),resultClass.getCurrentLocation());
-        db = FirebaseFirestore.getInstance();
-        db.collection("coordinates")
-                .add(coordinates)
-                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+        coordinates.put("time",resultClass.getCurrentDateTime());
+        coordinates.put("location",resultClass.getCurrentLocation());
+
+        String userId= FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection(userId+date)
+                .document(resultClass.getCurrentDateTime())
+                .set(coordinates, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
-                    public void onSuccess(DocumentReference documentReference) {
+                    public void onSuccess(Void aVoid) {
                         Log.v("TakeCoordinates","Upload coordinates to firebase");
                         uploadSuccess=true;
                     }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.v("TakeCoordinates","Error ->" +e);
-                        uploadSuccess=false;
-                    }
-                });
+                }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.v("TakeCoordinates","Error ->" +e);
+                uploadSuccess=false;
+            }
+        });
+
         return uploadSuccess;
     }
 

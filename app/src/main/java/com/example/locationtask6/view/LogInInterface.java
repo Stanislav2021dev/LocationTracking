@@ -11,5 +11,4 @@ public interface LogInInterface extends MvpView {
 
     @StateStrategyType(AddToEndSingleStrategy.class)
     void onSuccessAuth();
-
 }

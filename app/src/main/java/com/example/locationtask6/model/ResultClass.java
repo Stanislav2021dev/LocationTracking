@@ -11,15 +11,11 @@ import io.reactivex.rxjava3.subjects.Subject;
 
 public class ResultClass {
 
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("HHmmss", Locale.US);
 
   private String currentDateTime;
   private LatLng currentLocation;
 
-    public  ResultClass(Date currentDateTime,LatLng currentLocation){
-        this.currentDateTime=DATE_FORMAT.format(currentDateTime);
-        this.currentLocation=currentLocation;
-    }
 
   public  ResultClass(String currentDateTime,LatLng currentLocation){
       this.currentDateTime=currentDateTime;
