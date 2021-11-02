@@ -64,7 +64,7 @@ public class GetCoordinates {
         locationRequest = new LocationRequest();
         locationRequest.setInterval(interval);
         locationRequest.setFastestInterval(interval);
-        locationRequest.setSmallestDisplacement(15);
+        //locationRequest.setSmallestDisplacement(15);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 

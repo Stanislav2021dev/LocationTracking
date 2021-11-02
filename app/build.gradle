@@ -18,6 +18,25 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            storeFile rootProject.file("key_location2.jks")
+            storePassword "123456"
+            keyAlias "key1"
+            keyPassword "123456"
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+
+
     buildTypes {
         release {
             minifyEnabled false
