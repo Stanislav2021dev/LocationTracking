@@ -37,7 +37,7 @@ public class LogInPresenter extends MvpPresenter<LogInInterface>   {
                         getViewState().onSuccessAuth();
                     } else {
                         Log.w("Auth", "createUserWithEmail:failure", task.getException());
-                        getViewState().makeToast("Registration failed");
+                        getViewState().makeToast("Registration failed! "+ task.getException().getMessage());
                     }
                 });
     }

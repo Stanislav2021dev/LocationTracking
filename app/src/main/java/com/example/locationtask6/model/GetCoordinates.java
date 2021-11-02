@@ -7,11 +7,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.Build;
 import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 
 import com.example.locationtask6.view.App;
@@ -62,7 +64,7 @@ public class GetCoordinates {
         locationRequest = new LocationRequest();
         locationRequest.setInterval(interval);
         locationRequest.setFastestInterval(interval);
-        // locationRequest.setSmallestDisplacement(10);
+        locationRequest.setSmallestDisplacement(15);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
@@ -119,6 +121,7 @@ public class GetCoordinates {
                                 ResolvableApiException
                                         resolvableApiException =
                                         (ResolvableApiException) exception;
+                                Log.v("TakeCoordinates","RESOLUTION_REQUIRED"  );
                                 Intent intent = new Intent("SHOW_SNACKBAR");
                                 intent.putExtra("ApiException", resolvableApiException.getResolution());
 
@@ -139,11 +142,12 @@ public class GetCoordinates {
         });
     }
 
+
     public ResultClass updateLocation() {
         if (currentLocation != null) {
             currentLatLng =
                     new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-            Log.v("TakeCoordinates", "Taking coordinates. Current location --> " + currentLatLng);
+            Log.v("TakeCoordinates", "Taking coordinates. Current location --> " + currentLatLng );
         }
         return new ResultClass(Utils.getCurrentTime(), currentLatLng);
     }

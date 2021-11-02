@@ -40,7 +40,6 @@ import java.util.Locale;
 public class LoadData {
     private static CoordinatesDataBase coordinatesDataBase;
     private static final HashMap<String, Object> coordinates=new HashMap<>();
-   // private static FirebaseFirestore db;
     private static boolean uploadSuccess;
 
 
@@ -101,8 +100,9 @@ public class LoadData {
         if (coordinatesModelList.size() != 0) {
             Log.v("TakeCoordinates","Upload from DB to Fb");
             for (CoordinatesModel coord : coordinatesModelList) {
-       //         Log.v("TakeCoordinates", "Time " + coord.getDateTime() + " coordinates " + coord.getCoordinates()
-       //                 + "Size " + LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates().size());
+
+                Log.v("DATABASE", "Time " + coord.getDateTime() + " coordinates " + coord.getCoordinates()
+                        + "Size " + LoadData.getCoordinatesDataBase().getCoordinatesDAO().getAllCoordinates().size());
                 LoadData.uploadToFireBase(new ResultClass(coord.getDateTime(), LoadData.toLatLng(coord.getCoordinates())));
                 LoadData.getCoordinatesDataBase().getCoordinatesDAO().delete(coord.getId());
             }

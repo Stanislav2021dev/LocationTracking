@@ -23,7 +23,7 @@ public class ResultClass {
   }
 
   public String getCurrentDateTime(){
-      currentDateTime = DATE_FORMAT.format(new Date());
+     // currentDateTime = DATE_FORMAT.format(new Date());
       return currentDateTime;
   }
 

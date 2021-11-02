@@ -12,12 +12,14 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -39,16 +41,21 @@ import moxy.presenter.InjectPresenter;
 
 import static android.location.LocationManager.PROVIDERS_CHANGED_ACTION;
 
+
 public class TrackActivity extends MvpAppCompatActivity implements TrackInterface, OnMapReadyCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 222;
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
+    private static final String BACKGROUND_LOCATION = Manifest.permission.ACCESS_BACKGROUND_LOCATION;
+    private static final String ACTIVITY_RECOGNITION = Manifest.permission.ACTIVITY_RECOGNITION;
     private Intent mIntent;
     public static LocationSettingsChangeReciver mReceiver;
     private SnackBarViewClass snackbar = new SnackBarViewClass();
     private BroadcastReceiver apiExeptionReceiver;
     private Snackbar errorSnackBar;
+    private Snackbar backgroundSnackBar;
     private boolean firstCreate= true;
+    private String[] permissions;
 
     @InjectPresenter
     public TrackPresenter trackPresenter;
@@ -64,16 +71,19 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-
-
         mIntent = new Intent(getApplicationContext(), LocationUpdatesService.class);
     }
 
 
     @Override
     protected void onResume() {
+
         hideSnackBar();
+        if (ActivityCompat.checkSelfPermission(this,
+                BACKGROUND_LOCATION)==PackageManager.PERMISSION_GRANTED && backgroundSnackBar!=null){
+            backgroundSnackBar.dismiss();
+        }
+
         super.onResume();
     }
 
@@ -119,8 +129,8 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        LatLng kyiv = new LatLng(50.45, 30.55);
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(kyiv));
+        //LatLng kyiv = new LatLng(50.45, 30.55);
+        //mMap.moveCamera(CameraUpdateFactory.newLatLng(kyiv));
         if (ActivityCompat.checkSelfPermission(this, FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED) {
             return;
@@ -129,11 +139,21 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     }
 
     public void getLocationPermission() {
-        String[] permissions = {FINE_LOCATION};
-        if (App.getContext().checkSelfPermission(FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            registerBroadcastReceivers();
-            trackPresenter.startLocationUpdates();
+
+        if (android.os.Build.VERSION.SDK_INT ==29){
+           permissions = new String[]{FINE_LOCATION, BACKGROUND_LOCATION};
+        }
+       
+        else
+            permissions = new String[]{FINE_LOCATION};
+
+        checkBackgroundPermission();
+
+        if ((App.getContext().checkSelfPermission(FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED)) {
+
+                registerBroadcastReceivers();
+                trackPresenter.startLocationUpdates();
 
         } else {
             ActivityCompat.requestPermissions(this,
@@ -145,8 +165,12 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
+
+            if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                mMap.setMyLocationEnabled(true);
+                checkBackgroundPermission();
                 registerBroadcastReceivers();
                 trackPresenter.startLocationUpdates();
 
@@ -163,7 +187,7 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
     public void addPoint(LatLng currentLatLng) {
         mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(12));
-        mMap.addMarker(new MarkerOptions().position(currentLatLng).title("Current location"));
+        //mMap.addMarker(new MarkerOptions().position(currentLatLng).title("Current location"));
     }
 
     @Override
@@ -202,6 +226,16 @@ public class TrackActivity extends MvpAppCompatActivity implements TrackInterfac
             createApiExeptionReceiver();
             registerReceiver(apiExeptionReceiver, new IntentFilter("SHOW_SNACKBAR"), 0);
             firstCreate=false;
+        }
+    }
+    public void checkBackgroundPermission() {
+        if (ActivityCompat.checkSelfPermission(this,
+                BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:" + getPackageName()));
+            backgroundSnackBar =  snackbar.createSnackBar(this,"To enable background work, " +
+                            "please turn on 'Allow all the time' for this application",
+                    "Allow",intent);
         }
     }
 }

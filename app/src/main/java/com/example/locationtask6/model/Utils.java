@@ -19,7 +19,7 @@ public class Utils {
 
 
     public static String getCurrentTime() {
-        return new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.UK).format(Calendar.getInstance().getTime());
+        return new SimpleDateFormat("HHmmss", Locale.US).format(Calendar.getInstance().getTime());
     }
 
     public static boolean isOnline() {
