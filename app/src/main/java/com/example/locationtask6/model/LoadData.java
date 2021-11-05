@@ -1,5 +1,6 @@
 package com.example.locationtask6.model;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.location.Location;
@@ -28,6 +29,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.auth.User;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -41,7 +43,6 @@ public class LoadData {
     private static CoordinatesDataBase coordinatesDataBase;
     private static final HashMap<String, Object> coordinates=new HashMap<>();
     private static boolean uploadSuccess;
-
 
     public static synchronized void initDb(){
         Log.v("Data","InitDb");
